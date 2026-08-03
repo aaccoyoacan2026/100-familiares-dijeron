@@ -1,0 +1,25 @@
+{
+  "name": "cien-personas-dijeron",
+  "version": "1.0.0",
+  "description": "Juego de encuestas por equipos para proyectar en una TV, con panel de control independiente para celular y segundo juego Premio Rápido. Sin dependencias.",
+  "main": "servidor.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node servidor.js",
+    "dev": "node servidor.js 8080"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "juego",
+    "concurso",
+    "encuestas",
+    "trivia",
+    "family-feud",
+    "fiesta",
+    "html5"
+  ],
+  "license": "MIT",
+  "private": false
+}

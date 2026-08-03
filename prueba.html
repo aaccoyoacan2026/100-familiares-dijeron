@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Pruebas — 100 Personas Dijeron</title>
+<style>
+  body { font: 14px/1.6 ui-monospace, Consolas, monospace; background: #0d1526; color: #eef2fa; padding: 24px; }
+  h1 { font-size: 18px; margin-bottom: 6px; }
+  h2 { font-size: 13px; color: #8fa3cc; margin: 18px 0 6px; letter-spacing: 1px; text-transform: uppercase; }
+  .ok { color: #38d39f; }
+  .mal { color: #ff6b6b; }
+  .res { margin-top: 22px; font-size: 16px; font-weight: bold; }
+  li { list-style: none; }
+  ul { margin: 0; padding: 0; }
+</style>
+</head>
+<body>
+<h1>Pruebas automáticas del juego</h1>
+<div id="cuerpo"></div>
+<div class="res" id="resumen">corriendo…</div>
+
+<script src="js/motor.js"></script>
+<script>
+(function () {
+  var pasa = 0, falla = 0, lista;
+
+  function grupo(titulo) {
+    var h = document.createElement('h2'); h.textContent = titulo;
+    lista = document.createElement('ul');
+    document.getElementById('cuerpo').appendChild(h);
+    document.getElementById('cuerpo').appendChild(lista);
+  }
+  function ok(nombre, cond) {
+    var li = document.createElement('li');
+    li.className = cond ? 'ok' : 'mal';
+    li.textContent = (cond ? '✔ ' : '✘ ') + nombre;
+    lista.appendChild(li);
+    cond ? pasa++ : falla++;
+  }
+
+  var P = { id: 1, cat: 'Test', texto: '¿?', respuestas: [
+    { t: 'a', p: 40 }, { t: 'b', p: 25 }, { t: 'c', p: 15 }, { t: 'd', p: 12 }, { t: 'e', p: 8 } ] };
+  var ROJO = 0, AZUL = 1;
+
+  /* ---------------------------------------------------------- */
+  grupo('Ronda básica');
+  var e = Motor.estadoInicial({ meta: 350 });
+  e = Motor.nuevaRonda(e, P, 1, ROJO);
+  ok('la ronda abre en fase de cara a cara', e.fase === 'inicio' && e.turno === ROJO);
+  ok('todas las casillas empiezan ocultas', e.reveladas.length === 5 && e.reveladas.every(function (r) { return !r; }));
+  e = Motor.acertar(e, 0);
+  ok('acertar en el cara a cara da el control', e.fase === 'ronda' && e.turno === ROJO);
+  ok('bote = 40 tras un acierto', Motor.bote(e) === 40);
+  e = Motor.acertar(e, 0);
+  ok('no se puede revelar dos veces', Motor.bote(e) === 40);
+  [1, 2, 3, 4].forEach(function (i) { e = Motor.acertar(e, i); });
+  ok('la ronda se cierra al revelar todo', e.fase === 'resuelta');
+  ok('el equipo en control recibe 100 pts', e.equipos[ROJO].puntos === 100);
+
+  var d = Motor.acertar(Motor.nuevaRonda(Motor.estadoInicial({}), P, 3, ROJO), 0);
+  ok('el multiplicador ×3 aplica al bote', Motor.bote(d) === 120);
+
+  /* ---------------------------------------------------------- */
+  grupo('Traspaso automático en el cara a cara');
+  var t = Motor.nuevaRonda(Motor.estadoInicial({}), P, 1, AZUL);
+  t = Motor.fallar(t);
+  ok('el error del cara a cara pasa el turno solo', t.turno === ROJO && t.fase === 'ronda');
+  ok('el equipo que entra arranca con 0 errores', t.errores[ROJO] === 0);
+  ok('el error queda registrado al equipo que falló', t.errores[AZUL] === 1);
+
+  /* ---------------------------------------------------------- */
+  grupo('Ejemplo del enunciado: cloro / jabón');
+  var j = Motor.nuevaRonda(Motor.estadoInicial({ meta: 350 }), P, 1, AZUL);
+  j = Motor.fallar(j);                       // azul dice "cloro" -> error, pasa a rojo
+  j = Motor.acertar(j, 0);                   // rojo dice "jabón" -> correcto (40)
+  ok('rojo toma el control tras acertar', j.turno === ROJO && j.fase === 'ronda');
+  j = Motor.acertar(j, 1);                   // rojo suma otra (25) -> bote 65
+  ok('rojo acumula 65 en el bote', Motor.bote(j) === 65);
+  j = Motor.fallar(j); j = Motor.fallar(j);
+  ok('con 2 errores rojo sigue jugando', j.fase === 'ronda' && j.errores[ROJO] === 2);
+  j = Motor.fallar(j);
+  ok('al tercer error se abre el robo', j.fase === 'robo' && j.robador === AZUL);
+  var jGana = Motor.acertar(j, 2);
+  ok('azul roba y se lleva los 65 puntos', jGana.equipos[AZUL].puntos === 65 && jGana.equipos[ROJO].puntos === 0);
+  ok('tras el robo la ronda queda resuelta', jGana.fase === 'resuelta');
+  var jFalla = Motor.fallar(j);
+  ok('si azul falla el robo, los puntos son de rojo', jFalla.equipos[ROJO].puntos === 65 && jFalla.equipos[AZUL].puntos === 0);
+
+  /* ---------------------------------------------------------- */
+  grupo('Controles manuales del operador');
+  var m = Motor.acertar(Motor.nuevaRonda(Motor.estadoInicial({}), P, 2, ROJO), 0);
+  var dado = Motor.asignarBote(m, AZUL);
+  ok('el operador puede darle el bote a quien decida', dado.equipos[AZUL].puntos === 80 && dado.fase === 'resuelta');
+  ok('elegirInicial cambia el equipo con la palabra', Motor.elegirInicial(m, AZUL).turno === AZUL);
+  ok('cambiarTurno alterna', Motor.cambiarTurno(Motor.estadoInicial({})).turno === 1);
+  ok('los puntos no bajan de cero', Motor.ajustarPuntos(Motor.estadoInicial({}), 0, -20).equipos[0].puntos === 0);
+  ok('setColumnas guarda la preferencia', Motor.setColumnas(Motor.estadoInicial({}), 2).columnas === 2);
+  var ren = Motor.configurar(Motor.estadoInicial({}), { nombres: ['Leones', 'Tigres'] });
+  ok('se pueden renombrar los equipos', ren.equipos[0].nombre === 'Leones' && ren.equipos[1].nombre === 'Tigres');
+  var ri = Motor.reiniciar(Motor.setColumnas(ren, 2));
+  ok('reiniciar conserva nombres y columnas, borra puntos',
+     ri.equipos[0].nombre === 'Leones' && ri.equipos[0].puntos === 0 && ri.columnas === 2 && ri.fase === 'lobby');
+
+  /* ---------------------------------------------------------- */
+  grupo('Victoria y selección de preguntas');
+  var v = Motor.nuevaRonda(Motor.estadoInicial({ meta: 100 }), P, 1, ROJO);
+  [0, 1, 2, 3, 4].forEach(function (i) { v = Motor.acertar(v, i); });
+  ok('gana al alcanzar la meta', v.fase === 'fin' && v.ganador === ROJO);
+  ok('no se abren rondas después de ganar', Motor.nuevaRonda(v, P, 1, ROJO).fase === 'fin');
+
+  var bancoTest = [P, { id: 2, cat: 'Test', texto: 'b', respuestas: P.respuestas },
+                      { id: 3, cat: 'Test', texto: 'c', respuestas: P.respuestas }];
+  ok('no repite preguntas usadas', Motor.preguntaAleatoria(bancoTest, [1, 2], '').id === 3);
+  ok('recicla cuando ya se usaron todas', !!Motor.preguntaAleatoria(bancoTest, [1, 2, 3], ''));
+
+  /* ---------------------------------------------------------- */
+  grupo('Premio Rápido (segundo juego)');
+  var cinco = [0, 1, 2, 3, 4].map(function (i) {
+    return { id: 900 + i, cat: 'Test', texto: 'pregunta ' + i, respuestas: P.respuestas };
+  });
+  var g = Motor.estadoInicial({ meta: 100 });
+  g.fase = 'fin'; g.ganador = ROJO;
+
+  var pg = Motor.iniciarPremio(g, cinco, ['Ana', 'Beto'], 200);
+  ok('arranca en preparación con el jugador 1', pg.premio.activo && pg.premio.etapa === 'prep' && pg.premio.jugador === 0);
+  ok('el jugador 1 tiene 20 segundos', pg.premio.reloj.limite === 20);
+  ok('toma exactamente 5 preguntas', pg.premio.preguntas.length === 5);
+
+  pg = Motor.premioComenzar(pg);
+  ok('al comenzar corre el reloj', pg.premio.etapa === 'captura' && pg.premio.reloj.corriendo);
+  ok('el reloj se detiene solo al llegar a cero', Motor.premioReloj(pg, 0, true).premio.reloj.corriendo === false);
+
+  pg = Motor.premioResponder(pg, 0);                       // 40
+  ok('registra la respuesta y avanza sola', pg.premio.respuestas[0][0].p === 40 && pg.premio.actual === 1);
+  pg = Motor.premioResponder(pg, -1);                      // 0, "no está"
+  ok('“no está en el tablero” vale 0', pg.premio.respuestas[0][1].p === 0);
+  pg = Motor.premioResponder(pg, 1);                       // 25
+  pg = Motor.premioResponder(pg, 2);                       // 15
+  pg = Motor.premioResponder(pg, 3);                       // 12  -> jugador 1 suma 92
+
+  pg = Motor.premioRevelar(pg, 0);
+  ok('revelar de a una va sumando el total', Motor.premioTotal(pg) === 40 && pg.premio.etapa === 'revela');
+
+  pg = Motor.premioSiguienteJugador(pg);
+  ok('pasa al jugador 2 con 25 segundos', pg.premio.jugador === 1 && pg.premio.reloj.limite === 25);
+
+  pg = Motor.premioComenzar(pg);
+  pg = Motor.premioResponder(pg, 0);                       // repetida (jugador 1 ya dijo la 0)
+  ok('detecta la respuesta repetida', pg.premio.respuestas[1][0].dup === true);
+  pg = Motor.premioResponder(pg, 0);                       // 40
+  pg = Motor.premioResponder(pg, 0);                       // 40
+  pg = Motor.premioResponder(pg, 0);                       // 40
+  pg = Motor.premioResponder(pg, 0);                       // 40  -> jugador 2 suma 160
+
+  var fin = Motor.premioFinal(pg);
+  ok('el total suma a los dos jugadores y descuenta la repetida', Motor.premioTotal(fin) === 252);
+  ok('gana si alcanza la meta', fin.premio.resultado === 'gana' && fin.premio.etapa === 'fin');
+
+  var apretado = Motor.premioFinal(Motor.iniciarPremio(g, cinco, ['Ana', 'Beto'], 300));
+  ok('pierde si no alcanza la meta', apretado.premio.resultado === 'pierde');
+  ok('cerrar el premio devuelve al marcador', Motor.premioCerrar(fin).premio.activo === false);
+  ok('reiniciar la partida borra el premio', Motor.reiniciar(fin).premio === null);
+
+  /* ---------------------------------------------------------- */
+  function revisarBanco(url, titulo, cuantas, minResp, maxResp) {
+    return fetch(url).then(function (r) { return r.json(); }).then(function (j) {
+      var lista = j.preguntas;
+      grupo(titulo);
+      ok('carga y trae ' + cuantas + ' preguntas', lista.length === cuantas);
+      var ids = {}, dupes = 0, malas = 0, sumaMal = 0;
+      lista.forEach(function (p) {
+        if (ids[p.id]) dupes++;
+        ids[p.id] = 1;
+        var suma = p.respuestas.reduce(function (s, x) { return s + x.p; }, 0);
+        if (p.respuestas.length < minResp || p.respuestas.length > maxResp || !p.texto || !p.cat) malas++;
+        if (suma > 100 || suma < 60) sumaMal++;
+      });
+      ok('todos los id son únicos', dupes === 0);
+      ok('todas tienen entre ' + minResp + ' y ' + maxResp + ' respuestas', malas === 0);
+      ok('los porcentajes suman entre 60 y 100', sumaMal === 0);
+      return lista;
+    }).catch(function () {
+      grupo(titulo);
+      ok('carga el JSON (requiere abrirlo con el servidor: node servidor.js)', false);
+      return [];
+    });
+  }
+
+  Promise.all([
+    revisarBanco('data/preguntas.json', 'Banco clásico', 120, 5, 5),
+    revisarBanco('data/preguntas-6a8.json', 'Banco extendido', 40, 6, 8)
+  ]).then(function (bancos) {
+    grupo('Los dos bancos juntos');
+    var choque = 0, ids = {};
+    bancos[0].concat(bancos[1]).forEach(function (p) {
+      if (ids[p.id]) choque++;
+      ids[p.id] = 1;
+    });
+    ok('no hay id repetidos entre los dos archivos', choque === 0);
+    var r = document.getElementById('resumen');
+    r.textContent = pasa + ' pruebas OK · ' + falla + ' fallidas';
+    r.className = 'res ' + (falla ? 'mal' : 'ok');
+  });
+})();
+</script>
+</body>
+</html>

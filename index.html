@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>100 Personas Dijeron — Tablero</title>
+<link rel="stylesheet" href="css/tablero.css">
+</head>
+<body>
+
+<div id="app">
+
+  <div class="escenario">
+
+    <!-- Torre equipo 1 -->
+    <div class="torre izq" id="mA">
+      <div class="placa">
+        <div class="nombre" id="nombreA">Equipo Rojo</div>
+        <div class="jugadores" id="jugA"></div>
+      </div>
+      <div class="display">
+        <div class="puntos" id="ptsA">0</div>
+      </div>
+      <div class="strikes" id="strA"><span>✕</span><span>✕</span><span>✕</span></div>
+    </div>
+
+    <!-- Centro -->
+    <div class="centro">
+      <div class="pregunta">
+        <div class="cat" id="cat">RONDA 0</div>
+        <div class="texto" id="textoPregunta">Esperando al panel de control…</div>
+      </div>
+
+      <div class="marco">
+        <div class="bulbos"></div>
+        <div class="panel">
+          <div class="bote">
+            <span class="etq">BOTE</span>
+            <span class="val" id="bote">0</span>
+            <span class="mult" id="mult"></span>
+          </div>
+          <div class="tablero" id="tablero"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Torre equipo 2 -->
+    <div class="torre der" id="mB">
+      <div class="placa">
+        <div class="nombre" id="nombreB">Equipo Azul</div>
+        <div class="jugadores" id="jugB"></div>
+      </div>
+      <div class="display">
+        <div class="puntos" id="ptsB">0</div>
+      </div>
+      <div class="strikes" id="strB"><span>✕</span><span>✕</span><span>✕</span></div>
+    </div>
+
+  </div>
+
+  <div class="pie">
+    <div id="estadoConexion">Modo local · abre <code>panel.html</code> para controlar</div>
+    <div class="aviso" id="aviso"></div>
+    <div>
+      <label class="btn-archivo" title="Elige una carpeta con los MP3 del juego">
+        📁 Sonidos<input type="file" id="carpetaSonidos" webkitdirectory directory multiple hidden>
+      </label>
+      <button id="btnSonido">🔊 Sonido</button>
+      <button id="btnPantalla">⛶ Pantalla completa</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Segundo juego: Premio Rápido ===== -->
+<div class="premio" id="premio" hidden>
+  <div class="premio-caja">
+    <div class="premio-cab">
+      <div class="premio-titulo">PREMIO RÁPIDO</div>
+      <div class="reloj" id="pReloj">20</div>
+      <div class="premio-total">
+        <span>TOTAL</span>
+        <b id="pTotal">0</b>
+        <small id="pMeta">meta 200</small>
+      </div>
+    </div>
+
+    <div class="premio-cols">
+      <div class="col-etq"></div>
+      <div class="col-etq j1" id="pNombre1">Jugador 1</div>
+      <div class="col-etq j2" id="pNombre2">Jugador 2</div>
+    </div>
+
+    <div class="premio-tabla" id="pTabla"></div>
+
+    <div class="premio-pie" id="pPie">Preparando…</div>
+  </div>
+
+  <div class="premio-final" id="pFinal" hidden>
+    <div class="premio-final-caja">
+      <h2 id="pFinalTitulo">¡GANARON EL PREMIO!</h2>
+      <div class="marcador-final" id="pFinalTotal">0</div>
+      <p id="pFinalPie"></p>
+    </div>
+  </div>
+</div>
+
+<div class="strike-grande" id="strikeGrande"><div class="x" id="strikeX"></div></div>
+<div class="confeti" id="confeti"></div>
+
+<div class="velo" id="velo" hidden>
+  <div class="tarjeta-final">
+    <h1 id="veloTitulo">¡GANADOR!</h1>
+    <div class="sub" id="veloSub"></div>
+    <p id="veloPie"></p>
+  </div>
+</div>
+
+<script src="js/motor.js"></script>
+<script src="js/bus.js"></script>
+<script src="js/sonidos.js"></script>
+<script src="js/tablero.js"></script>
+</body>
+</html>

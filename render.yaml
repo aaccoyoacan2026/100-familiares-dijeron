@@ -1,0 +1,14 @@
+# Despliegue en Render (https://render.com) — plan gratuito.
+# En Render: New > Blueprint > conecta este repositorio.
+services:
+  - type: web
+    name: cien-personas-dijeron
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: echo "Sin dependencias que instalar"
+    startCommand: node servidor.js
+    healthCheckPath: /salud
+    envVars:
+      - key: NODE_VERSION
+        value: "20"

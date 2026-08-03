@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#0d1526">
+<title>Panel de control — 100 Personas Dijeron</title>
+<link rel="stylesheet" href="css/panel.css">
+</head>
+<body>
+
+<h1>
+  <span>Panel de control</span>
+  <span class="cab-der">
+    <small class="estado-con" id="estadoConexion">modo local</small>
+    <button class="reiniciar" id="btnReiniciar">↺ Reiniciar</button>
+  </span>
+</h1>
+
+<div id="aviso"></div>
+
+<!-- ===================== JUEGO 2: PREMIO RÁPIDO ===================== -->
+<div id="juego2" hidden>
+  <div class="tarjeta premio-cab-panel">
+    <h2>Premio Rápido</h2>
+    <div class="pr-resumen">
+      <div><small>Jugador en turno</small><b id="prTurno">—</b></div>
+      <div><small>Total</small><b id="prTotal" class="oro">0</b></div>
+      <div><small>Reloj</small><b id="prReloj">20</b></div>
+    </div>
+    <div class="dos" style="margin-top:10px">
+      <div>
+        <label>Jugador 1 (20 s)</label>
+        <input type="text" id="prNombre1" placeholder="Nombre">
+      </div>
+      <div>
+        <label>Jugador 2 (25 s)</label>
+        <input type="text" id="prNombre2" placeholder="Nombre">
+      </div>
+    </div>
+  </div>
+
+  <div class="tarjeta">
+    <h2 id="prEtapaTitulo">Preparación</h2>
+    <div id="prAviso" class="aviso"></div>
+
+    <!-- Preparación -->
+    <div id="prPrep">
+      <button class="grande verde" id="prComenzar" style="width:100%">▶ Comenzar los 20 segundos</button>
+    </div>
+
+    <!-- Captura -->
+    <div id="prCaptura" hidden>
+      <div class="fila" style="margin-bottom:10px">
+        <button id="prPausar">⏸ Pausar</button>
+        <button id="prReanudar">▶ Reanudar</button>
+        <button class="fantasma" id="prResetReloj">↺ Reloj</button>
+      </div>
+      <div class="fila-espia">
+        <div class="mult" id="prPasos"></div>
+        <button class="espia" id="prEspiar" title="Ver lo que llevas registrado">👁</button>
+      </div>
+      <div class="preg-cat" id="prCat"></div>
+      <div class="preg" id="prPregunta"></div>
+      <div class="respuestas" id="prRespuestas"></div>
+      <div class="fila" style="margin-top:10px">
+        <button class="rojo grande" id="prNoEsta">✕ No está en el tablero</button>
+      </div>
+      <div class="fila" style="margin-top:8px">
+        <button class="fantasma" id="prSaltar">Saltar pregunta</button>
+        <button class="azul" id="prTerminarCaptura">Terminar y revelar</button>
+      </div>
+    </div>
+
+    <!-- Revelación -->
+    <div id="prRevela" hidden>
+      <div class="respuestas" id="prLista"></div>
+      <div class="fila" style="margin-top:10px">
+        <button class="grande verde" id="prRevelarSig">Revelar siguiente</button>
+      </div>
+      <div class="fila" style="margin-top:8px">
+        <button class="azul" id="prSiguienteJugador">Pasar al jugador 2</button>
+        <button class="oro" id="prVerResultado">Ver resultado</button>
+      </div>
+    </div>
+
+    <!-- Fin -->
+    <div id="prFin" hidden>
+      <div class="fila">
+        <button class="grande azul" id="prCerrar">Volver al marcador</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== JUEGO 1 ===================== -->
+<div id="juego1">
+
+<!-- ===== Marcador y control de equipos ===== -->
+<div class="tarjeta">
+  <div class="marcadores">
+    <div class="eq" id="eqA">
+      <input class="nombre-eq" id="inNombreA" value="Equipo Rojo" aria-label="Nombre equipo 1">
+      <div class="p" id="pA">0</div>
+      <div class="err" id="errA"></div>
+      <div class="mini">
+        <button data-pts="0,-5">−5</button>
+        <button data-pts="0,5">+5</button>
+        <button data-turno="0">Turno</button>
+      </div>
+      <button class="dar-bote" data-bote="0">Darle el bote</button>
+    </div>
+    <div class="eq" id="eqB">
+      <input class="nombre-eq" id="inNombreB" value="Equipo Azul" aria-label="Nombre equipo 2">
+      <div class="p" id="pB">0</div>
+      <div class="err" id="errB"></div>
+      <div class="mini">
+        <button data-pts="1,-5">−5</button>
+        <button data-pts="1,5">+5</button>
+        <button data-turno="1">Turno</button>
+      </div>
+      <button class="dar-bote" data-bote="1">Darle el bote</button>
+    </div>
+  </div>
+  <div class="linea-bote">
+    <span>Bote de la ronda</span>
+    <span><b id="bote">0</b> pts · meta <span id="metaTxt">350</span></span>
+  </div>
+</div>
+
+<!-- ===== Ronda ===== -->
+<div class="tarjeta">
+  <h2>Ronda <span id="numRonda">0</span></h2>
+
+  <label>¿Quién gana la palabra?</label>
+  <div class="mult" id="quienEmpieza">
+    <button data-inicia="0">Equipo 1</button>
+    <button data-inicia="1">Equipo 2</button>
+  </div>
+
+  <label>Valor de la ronda</label>
+  <div class="mult">
+    <button data-mult="1" class="on">×1</button>
+    <button data-mult="2">×2 DOBLE</button>
+    <button data-mult="3">×3 TRIPLE</button>
+  </div>
+
+  <div class="preg-cat" id="cat"></div>
+  <div class="preg" id="preg">Presiona “Nueva pregunta” para empezar.</div>
+
+  <div class="respuestas" id="respuestas"></div>
+
+  <div class="fila" style="margin-top:12px">
+    <button class="grande rojo" id="btnError">✕ ERROR</button>
+    <button class="grande azul" id="btnNueva">Nueva pregunta</button>
+  </div>
+  <div class="fila" style="margin-top:8px">
+    <button class="fantasma" id="btnRevelarTodo">Revelar todas</button>
+    <button class="fantasma" id="btnSaltar">Saltar pregunta</button>
+  </div>
+</div>
+
+<!-- ===== Banco y tablero ===== -->
+<div class="tarjeta">
+  <h2>Preguntas y tablero</h2>
+  <div class="dos">
+    <div>
+      <label>Banco</label>
+      <select id="inSet">
+        <option value="">Todos</option>
+        <option value="clasico">Clásico (5 respuestas)</option>
+        <option value="extendido">Extendido (6 a 8)</option>
+      </select>
+    </div>
+    <div>
+      <label>Categoría</label>
+      <select id="inCat"><option value="">Todas</option></select>
+    </div>
+  </div>
+  <label>Columnas del tablero</label>
+  <div class="mult" id="cols">
+    <button data-cols="0" class="on">Auto</button>
+    <button data-cols="1">1 columna</button>
+    <button data-cols="2">2 columnas</button>
+  </div>
+  <p class="nota" id="infoBanco"></p>
+</div>
+
+<!-- ===== Configuración ===== -->
+<div class="tarjeta">
+  <details>
+    <summary>Jugadores, meta y archivo de preguntas</summary>
+    <div class="dos">
+      <div>
+        <label>Jugadores equipo 1 (máx 5)</label>
+        <input type="text" id="inJugA" placeholder="Ana, Luis, Mario">
+      </div>
+      <div>
+        <label>Jugadores equipo 2 (máx 5)</label>
+        <input type="text" id="inJugB" placeholder="Sofía, Beto, Rosa">
+      </div>
+    </div>
+    <div class="dos">
+      <div>
+        <label>Puntos para ganar</label>
+        <input type="number" id="inMeta" value="350" min="50" step="10">
+      </div>
+      <div>
+        <label>Meta del Premio Rápido</label>
+        <input type="number" id="inMetaPremio" value="200" min="50" step="10">
+      </div>
+    </div>
+    <div class="fila" style="margin-top:12px">
+      <button class="verde" id="btnAplicar">Aplicar</button>
+    </div>
+
+    <label style="margin-top:16px">Cargar tu propio archivo JSON</label>
+    <input type="file" id="archivoJson" accept=".json,application/json">
+    <p class="nota">
+      Edita <code>data/preguntas.json</code> (5 respuestas) o <code>data/preguntas-6a8.json</code>
+      (6 a 8 respuestas) para agregar preguntas sin tocar el código.
+      Formato: <code>{ "id": 300, "cat": "Comida", "texto": "…", "respuestas": [ { "t": "…", "p": 30 }, … ] }</code>
+    </p>
+  </details>
+</div>
+
+<div class="tarjeta">
+  <details>
+    <summary>Sala y enlace del tablero</summary>
+    <p class="nota">Sala actual: <code id="salaActual">principal</code></p>
+    <label>Enlace del tablero (ábrelo en la TV)</label>
+    <input type="text" id="urlTablero" readonly>
+    <div class="fila" style="margin-top:8px">
+      <button id="btnCopiarTablero">Copiar enlace</button>
+      <button class="fantasma" id="btnNuevaSala">Crear sala nueva</button>
+    </div>
+    <p class="nota">
+      Si publicas el juego en internet, la sala evita que dos partidas distintas se pisen:
+      el tablero y el panel deben abrir la <b>misma</b> sala.
+    </p>
+  </details>
+</div>
+
+<div class="tarjeta">
+  <details>
+    <summary>Efectos de sonido (MP3)</summary>
+    <p class="nota">
+      Coloca tus archivos en la carpeta <code>sonidos/</code>, junto a <code>index.html</code>.
+      El juego los detecta solo, por nombre. Los que falten se sustituyen por el sonido sintetizado.
+    </p>
+    <div class="fila" style="margin:10px 0">
+      <button id="btnProbarSonidos">Probar los que tengo</button>
+      <label class="btn-archivo-panel">📁 Elegir carpeta
+        <input type="file" id="prCarpetaSonidos" webkitdirectory directory multiple hidden>
+      </label>
+    </div>
+    <p class="nota" id="infoSonidos"></p>
+    <p class="nota" style="margin-top:10px">
+      <b>Ojo:</b> el audio se escucha en la computadora del tablero. Si el panel está en el celular,
+      la carpeta debe estar en la PC de la TV (o cargarla desde el botón 📁 Sonidos del tablero).
+    </p>
+    <label>Nombres que reconoce</label>
+    <ul class="lista-sonidos" id="listaSonidos"></ul>
+  </details>
+</div>
+
+</div><!-- /juego1 -->
+
+<script src="js/motor.js"></script>
+<script src="js/bus.js"></script>
+<script src="js/banco.js"></script>
+<script src="js/sonidos.js"></script>
+<script src="js/panel.js"></script>
+</body>
+</html>
