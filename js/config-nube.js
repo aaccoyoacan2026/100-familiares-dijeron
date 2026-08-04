@@ -42,5 +42,5 @@
    "conectado por internet". Si dice "modo local", revisa la URL y las reglas.
    ======================================================================= */
 window.ConfigNube = {
-  firebase: ''
+  firebase: 'https://familiares-dijeron-default-rtdb.firebaseio.com'
 };
