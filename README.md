@@ -112,3 +112,5 @@ Abre `prueba.html` con el servidor (`npm start` y luego `http://localhost:8080/p
 ## Licencia
 
 [MIT](LICENSE) — puedes usarlo, modificarlo y compartirlo libremente.
+
+
