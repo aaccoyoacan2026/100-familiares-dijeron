@@ -34,8 +34,8 @@ Hay dos formas y sirven para cosas distintas. Puedes usar las dos a la vez.
 ### A) GitHub Pages + Firebase — gratis, siempre encendido y con control desde el celular
 
 1. Sube el proyecto a un repositorio de GitHub.
-2. Ve a **Settings → Pages** y en *Source* elige **GitHub Actions**.
-3. Listo: cada `push` a `main` republica el sitio con el workflow que ya viene en `.github/workflows/pages.yml`.
+2. Ve a **Settings → Pages** y en *Source* elige **Deploy from a branch**, rama `main`, carpeta `/ (root)`. **No elijas *GitHub Actions***: si lo seleccionas sin agregar tú un workflow, Pages deja de publicar y el sitio se queda congelado sin avisarte.
+3. Listo: cada commit a `main` republica el sitio solo, en menos de un minuto. Si subiste un cambio y no lo ves, recarga con `Ctrl+F5`: los archivos se sirven con 10 minutos de caché.
 
 Tu URL queda como `https://USUARIO.github.io/REPO/`.
 
