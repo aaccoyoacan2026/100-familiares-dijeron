@@ -142,8 +142,9 @@
   function nuevaPregunta() {
     var pool = poolFiltrado();
     if (!pool.length) { alert('No hay preguntas con ese banco y esa categoría.'); return; }
-    var p = Motor.preguntaAleatoria(pool, estado.usadas, '');
-    publicar(Motor.nuevaRonda(estado, p, multiplicadorElegido, inicialElegido));
+    /* rondaAleatoria recorre todo el filtro sin repetir y reinicia el ciclo al agotarlo. */
+    var nuevo = Motor.rondaAleatoria(estado, pool, multiplicadorElegido, inicialElegido);
+    if (nuevo) publicar(nuevo);
   }
 
   $('btnNueva').addEventListener('click', nuevaPregunta);
@@ -297,7 +298,10 @@
     $('prComenzar').textContent = '▶ Comenzar los ' + pr.reloj.limite + ' segundos';
 
     var textos = {
-      prep: 'Aísla al otro jugador. Al presionar comenzar arranca el reloj de ' + pr.reloj.limite + ' segundos.',
+      prep: pr.jugador === 0
+        ? 'En la TV sigue el mensaje de ganador. Prepara a los dos jugadores y aísla al segundo: ' +
+          'al presionar comenzar cambia el tablero y arrancan los ' + pr.reloj.limite + ' segundos.'
+        : 'Aísla al otro jugador. Al presionar comenzar arranca el reloj de ' + pr.reloj.limite + ' segundos.',
       captura: 'Toca la respuesta que dio el jugador, o “No está en el tablero”. Se guarda sin mostrarse: ' +
         'el punto • indica que la pregunta ya quedó registrada. Usa 👁 solo si necesitas corregir.',
       revela: (pr.jugador === 1
@@ -372,11 +376,37 @@
       var r = pr.respuestas[pr.jugador][i];
       var n = Motor.premioNivel(pr.revelado[pr.jugador][i]);
       if (siguiente === -1 && n < 2) siguiente = i;
+
+      /* Si dijo algo que no estaba en el tablero, aquí se escribe tal cual para
+         que se proyecte. Vale 0 y sale en rojo. */
+      if (r && r.fuera) {
+        var caja = document.createElement('div');
+        caja.className = 'resp-libre' + (n >= 2 ? ' hecha' : '');
+        var campo = document.createElement('input');
+        campo.type = 'text';
+        campo.placeholder = '¿Qué dijo? (no estaba en el tablero)';
+        campo.value = r.t || '';
+        campo.addEventListener('change', function () {
+          publicar(Motor.premioTexto(estado, i, campo.value));
+        });
+        var boton = document.createElement('button');
+        boton.className = 'resp' + (n >= 2 ? ' hecha' : (n === 1 ? ' media' : ''));
+        boton.innerHTML = '<span class="i">' + (i + 1) + '</span><span class="t">Revelar</span>' +
+          '<span class="p cero">' + (n >= 2 ? '0' : (n === 1 ? '···' : '?')) + '</span>';
+        boton.disabled = n >= 2;
+        boton.addEventListener('click', function () { publicar(Motor.premioRevelar(estado, i)); });
+        caja.appendChild(campo);
+        caja.appendChild(boton);
+        lista.appendChild(caja);
+        return;
+      }
+
       var b = document.createElement('button');
       b.className = 'resp' + (n >= 2 ? ' hecha' : (n === 1 ? ' media' : ''));
+      var pts = r && !r.dup ? r.p : 0;
       b.innerHTML = '<span class="i">' + (i + 1) + '</span><span class="t">' +
-        escapar(r ? r.t : '(sin respuesta)') + '</span><span class="p">' +
-        (n >= 2 ? (r && r.dup ? 0 : (r ? r.p : 0)) : (n === 1 ? '···' : '?')) + '</span>';
+        escapar(r ? r.t : '(sin respuesta)') + '</span><span class="p' + (pts ? '' : ' cero') + '">' +
+        (n >= 2 ? pts : (n === 1 ? '···' : '?')) + '</span>';
       b.disabled = n >= 2;
       b.addEventListener('click', function () { publicar(Motor.premioRevelar(estado, i)); });
       lista.appendChild(b);

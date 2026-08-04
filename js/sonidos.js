@@ -6,11 +6,15 @@
   'use strict';
 
   var CLAVES = [
+    'introduccion', 'transicion',
     'acierto', 'error', 'traspaso', 'robo', 'robo-fallido', 'nueva-ronda', 'turno',
     'multiplicador', 'revelar-todo', 'victoria', 'reinicio',
     'premio-inicio', 'premio-arranque', 'premio-captura', 'premio-duplicada',
-    'premio-tic', 'premio-tiempo', 'premio-gana', 'premio-pierde'
+    'premio-puntos', 'premio-tic', 'premio-tiempo', 'premio-gana', 'premio-pierde'
   ];
+
+  /* Pistas que se reproducen en bucle como música de ambiente, no como efecto. */
+  var DE_BUCLE = ['introduccion', 'transicion'];
   /* Se aceptan varias extensiones. "mp3.mpeg" y "mpeg" estan incluidas porque algunos
      navegadores y gestores de descargas guardan los MP3 con ese nombre. */
   var EXTENSIONES = ['mp3', 'mp3.mpeg', 'mpeg', 'wav', 'ogg', 'm4a', 'mp4'];
@@ -105,10 +109,20 @@
       tono(1320, 0.32, 0.30, 'square', 0.22);
     },
     'premio-captura': function () { tono(1000, 0, 0.09, 'sine', 0.16); },
+    /* Bep bep de rechazo: dos pitidos secos e iguales, como los del programa. */
     'premio-duplicada': function () {
-      tono(160, 0, 0.5, 'square', 0.26, 80);
-      ruido(0, 0.3, 0.12);
+      tono(320, 0, 0.16, 'square', 0.30);
+      tono(320, 0.22, 0.16, 'square', 0.30);
     },
+    /* Golpe de puntaje: sube y remata, distinto del acierto. */
+    'premio-puntos': function () {
+      tono(600, 0, 0.07, 'triangle', 0.20);
+      tono(900, 0.07, 0.07, 'triangle', 0.22);
+      tono(1350, 0.14, 0.28, 'triangle', 0.24);
+    },
+    /* Sin archivo no se inventa música de ambiente: los bucles quedan en silencio. */
+    introduccion: function () {},
+    transicion: function () {},
     'premio-tic': function () { tono(1400, 0, 0.05, 'square', 0.12); },
     'premio-tiempo': function () {
       tono(220, 0, 0.9, 'sawtooth', 0.3, 110);
@@ -234,6 +248,53 @@
     delete sonando[nombre];
   }
 
+  /* ---------------- Música de ambiente en bucle ----------------
+     Solo suena si existe el archivo: un bucle sintetizado sería insoportable.
+     Se le puede pasar una lista y usa la primera pista que encuentre. */
+  var bucleActual = null;
+  var bucleEspera = null;
+
+  function primeraDisponible(nombres) {
+    var lista = [].concat(nombres);
+    for (var i = 0; i < lista.length; i++) if (pistas[lista[i]]) return lista[i];
+    return null;
+  }
+
+  function bucle(nombres) {
+    var k = primeraDisponible(nombres);
+    if (!activo || !usarMp3 || !k) { if (!k) pararBucle(); return; }
+    if (bucleActual === k) return;
+    pararBucle();
+    try {
+      var a = new Audio(pistas[k]);
+      a.loop = true;
+      a.volume = 1;
+      a.play().catch(function () {});
+      sonando[k] = a;
+      bucleActual = k;
+    } catch (e) {}
+  }
+
+  function pararBucle() {
+    if (bucleEspera) { clearTimeout(bucleEspera); bucleEspera = null; }
+    if (!bucleActual) return;
+    var a = sonando[bucleActual];
+    if (a) { try { a.pause(); a.loop = false; a.currentTime = 0; } catch (e) {} }
+    delete sonando[bucleActual];
+    bucleActual = null;
+  }
+
+  /* Arranca el bucle cuando termine la pista que está sonando (por ejemplo, la
+     música de cierre después del sonido de victoria). */
+  function bucleTras(nombres, previo) {
+    var k = primeraDisponible(nombres);
+    if (!k || bucleActual === k || bucleEspera) return;
+    var a = sonando[previo];
+    if (!a || a.paused) { bucle(nombres); return; }
+    var faltan = Math.max(0, (a.duration || 2.5) - (a.currentTime || 0));
+    bucleEspera = setTimeout(function () { bucleEspera = null; bucle(nombres); }, faltan * 1000 + 150);
+  }
+
   function caerASintetizado(nombre) {
     var f = sintetizado[nombre];
     if (f) try { f(); } catch (e) {}
@@ -246,11 +307,15 @@
     pausar: pausar,
     reanudar: reanudar,
     detener: detener,
+    bucle: bucle,
+    bucleTras: bucleTras,
+    pararBucle: pararBucle,
+    enBucle: function () { return bucleActual; },
     autodetectar: autodetectar,
     usarCarpeta: usarCarpeta,
     detectados: function () { return Object.keys(pistas).sort(); },
     usarMp3: function (v) { if (v !== undefined) usarMp3 = !!v; return usarMp3; },
-    activar: function (v) { activo = !!v; if (v) ac(); },
+    activar: function (v) { activo = !!v; if (v) ac(); else pararBucle(); },
     activo: function () { return activo; },
     despertar: function () { ac(); }
   };

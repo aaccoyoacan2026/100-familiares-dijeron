@@ -10,7 +10,7 @@
   function estadoInicial(cfg) {
     cfg = cfg || {};
     return {
-      v: 2,
+      v: 3,
       // lobby | inicio (cara a cara) | ronda | robo | resuelta | fin
       fase: 'lobby',
       equipos: [
@@ -20,6 +20,9 @@
       meta: cfg.meta || 350,
       turno: 0,
       pregunta: null,
+      /* El texto de la pregunta no se proyecta hasta la primera respuesta, para que
+         el equipo que gana la palabra no la vaya leyendo y prepare su respuesta. */
+      preguntaVisible: false,
       reveladas: [],
       errores: [0, 0],
       multiplicador: 1,
@@ -56,6 +59,7 @@
     var e = clonar(est);
     if (e.fase === 'fin') return e;
     e.pregunta = pregunta;
+    e.preguntaVisible = false;          // se destapa con la primera respuesta
     e.reveladas = pregunta.respuestas.map(function () { return false; });
     e.errores = [0, 0];
     e.multiplicador = multiplicador || 1;
@@ -84,6 +88,7 @@
   function acertar(est, i) {
     var e = clonar(est);
     if (e.reveladas[i] === undefined || e.reveladas[i]) return est;
+    e.preguntaVisible = true;           // ya hubo respuesta: se puede proyectar
 
     /* Acierta en el cara a cara: se queda con el control de la pregunta. */
     if (e.fase === 'inicio' || e.fase === 'ronda') {
@@ -104,6 +109,7 @@
 
   function fallar(est) {
     var e = clonar(est);
+    if (e.pregunta) e.preguntaVisible = true;   // un error también cuenta como respuesta
 
     /* Error en el cara a cara: el turno pasa de inmediato al otro equipo,
        que arranca con su propio contador de errores en cero. */
@@ -182,6 +188,7 @@
   function revelarTodo(est) {
     var e = clonar(est);
     e.mostrarTodo = true;
+    e.preguntaVisible = true;
     marcar(e, 'revelar-todo');
     return e;
   }
@@ -249,6 +256,11 @@
       reloj: { restante: TIEMPOS[0], limite: TIEMPOS[0], corriendo: false },
       resultado: null
     };
+    /* Las 5 del Premio Rápido también quedan marcadas como usadas, para que el
+       ciclo del banco no las vuelva a sacar en la siguiente partida. */
+    e.premio.preguntas.forEach(function (p) {
+      if (p && e.usadas.indexOf(p.id) === -1) e.usadas.push(p.id);
+    });
     marcar(e, 'premio-inicio');
     return e;
   }
@@ -274,8 +286,10 @@
     if (!preg) return est;
 
     if (sel < 0) {
-      pr.respuestas[pr.jugador][i] = { sel: -1, t: 'No está en el tablero', p: 0, dup: false };
-      marcar(e, 'error', 1);
+      /* Dijo algo que no está en el tablero. El texto se escribe a mano en el panel
+         durante la revelación (premioTexto); vale 0 y sale en rojo. */
+      pr.respuestas[pr.jugador][i] = { sel: -1, t: '', p: 0, dup: false, fuera: true };
+      marcar(e, 'premio-captura', i);
     } else {
       /* El jugador 2 no puede repetir lo que ya dijo el jugador 1: se bloquea.
          No se registra nada y no se avanza de pregunta; solo suena el aviso. */
@@ -359,8 +373,31 @@
     pr.revelado[j][i] = n + 1;
 
     var r = pr.respuestas[j][i];
-    if (n === 0) marcar(e, 'premio-captura', i);                          // sale la respuesta
-    else marcar(e, !r || r.dup || r.p === 0 ? 'error' : 'acierto', i);    // sale el puntaje
+    var vale = !!r && !r.dup && r.p > 0;
+    if (n === 0) marcar(e, vale ? 'acierto' : 'error', i);   // aparece LA RESPUESTA
+    else marcar(e, 'premio-puntos', i);                      // aparece EL PUNTAJE
+
+    /* Terminada la revelación del jugador 2 se pasa solo al resultado. */
+    if (j === 1 && !pendientes(pr, 1)) {
+      pr.etapa = 'fin';
+      pr.resultado = premioTotal(e) >= pr.meta ? 'gana' : 'pierde';
+      marcar(e, pr.resultado === 'gana' ? 'premio-gana' : 'premio-pierde');
+    }
+    return e;
+  }
+
+  function pendientes(pr, j) {
+    for (var k = 0; k < 5; k++) if (nivel(pr.revelado[j][k]) < 2) return true;
+    return false;
+  }
+
+  /* Escribe a mano lo que dijo el jugador cuando su respuesta no estaba en el tablero. */
+  function premioTexto(est, i, texto) {
+    var e = clonar(est), pr = e.premio;
+    if (!pr) return est;
+    var r = pr.respuestas[pr.jugador][i];
+    if (!r) return est;
+    r.t = String(texto || '');
     return e;
   }
 
@@ -372,7 +409,7 @@
     pr.etapa = 'prep';
     pr.actual = 0;
     pr.reloj = { restante: TIEMPOS[1], limite: TIEMPOS[1], corriendo: false };
-    marcar(e, 'turno');
+    marcar(e, 'nueva-ronda');
     return e;
   }
 
@@ -392,6 +429,30 @@
     if (e.premio) e.premio.activo = false;
     marcar(e, 'turno');
     return e;
+  }
+
+  /* Abre una ronda con una pregunta al azar del banco YA FILTRADO que le pasen.
+     Recorre todo el repertorio sin repetir ninguna; cuando lo agota empieza un
+     ciclo limpio (olvida solo las usadas de ese filtro, para no estropear los
+     ciclos de los demás) y evita encadenar dos veces la misma pregunta.
+     Devuelve null si el banco viene vacío. */
+  function rondaAleatoria(est, banco, multiplicador, equipoInicial) {
+    if (!banco || !banco.length) return null;
+    var e = est;
+    var usadas = est.usadas || [];
+    var frescas = banco.filter(function (p) { return usadas.indexOf(p.id) === -1; });
+
+    if (!frescas.length) {
+      var idsBanco = banco.map(function (p) { return p.id; });
+      e = clonar(est);
+      e.usadas = usadas.filter(function (id) { return idsBanco.indexOf(id) === -1; });
+      var ultima = est.pregunta ? est.pregunta.id : null;
+      frescas = banco.filter(function (p) { return p.id !== ultima; });
+      if (!frescas.length) frescas = banco.slice();
+    }
+
+    var p = frescas[Math.floor(Math.random() * frescas.length)];
+    return nuevaRonda(e, p, multiplicador, equipoInicial);
   }
 
   /* Elige una pregunta al azar que no se haya usado. Si ya se usaron todas, recicla. */
@@ -437,8 +498,10 @@
     preguntaAleatoria: preguntaAleatoria,
     preguntasAleatorias: preguntasAleatorias,
 
+    rondaAleatoria: rondaAleatoria,
     TIEMPOS_PREMIO: TIEMPOS,
     premioNivel: nivel,
+    premioTexto: premioTexto,
     iniciarPremio: iniciarPremio,
     premioTotal: premioTotal,
     premioResponder: premioResponder,

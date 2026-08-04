@@ -82,7 +82,14 @@
     $('cat').textContent = e.pregunta
       ? 'RONDA ' + e.ronda + ' · ' + e.pregunta.cat + (e.multiplicador > 1 ? ' · VALE ×' + e.multiplicador : '')
       : 'ESPERANDO';
-    $('textoPregunta').textContent = e.pregunta ? e.pregunta.texto : 'Abre el panel de control e inicia la ronda';
+
+    /* La pregunta se proyecta hasta la primera respuesta, para que el equipo que
+       gana la palabra no la vaya leyendo y traiga la respuesta preparada. */
+    var tapada = !!e.pregunta && !e.preguntaVisible;
+    $('textoPregunta').textContent = !e.pregunta
+      ? 'Abre el panel de control e inicia la ronda'
+      : (tapada ? 'ESCUCHA LA PREGUNTA…' : e.pregunta.texto);
+    $('textoPregunta').classList.toggle('tapada', tapada);
 
     var aviso = '';
     if (e.fase === 'inicio') aviso = 'Tiene la palabra ' + e.equipos[e.turno].nombre + ' · un intento';
@@ -94,15 +101,22 @@
 
     var enPremio = !!(e.premio && e.premio.activo);
     var fin = e.fase === 'fin';
-    $('velo').hidden = !fin || enPremio;
+
+    /* Al llegar a la meta se queda el mensaje de ganador —con su música— hasta que
+       el operador pulse "Comenzar los 25 segundos". Así hay tiempo de preparar a
+       los dos jugadores antes de que el tablero cambie al Premio Rápido. */
+    var esperandoPremio = enPremio && e.premio.etapa === 'prep' && e.premio.jugador === 0;
+    var verTablaPremio = enPremio && !esperandoPremio;
+
+    $('velo').hidden = !fin || verTablaPremio;
     if (fin) {
       $('veloSub').textContent = e.equipos[e.ganador].nombre;
       $('veloPie').textContent = e.equipos[0].nombre + ' ' + e.equipos[0].puntos +
         '  —  ' + e.equipos[1].nombre + ' ' + e.equipos[1].puntos;
     }
 
-    $('premio').hidden = !enPremio;
-    if (enPremio) pintarPremio(e);
+    $('premio').hidden = !verTablaPremio;
+    if (verTablaPremio) pintarPremio(e);
   }
 
   /* ---------- Premio Rápido ---------- */
@@ -136,10 +150,17 @@
       }
     }
 
+    var revelando = pr.etapa === 'revela' || pr.etapa === 'fin';
+
     for (var i = 0; i < 5; i++) {
       var fila = tabla.children[i];
       var preg = pr.preguntas[i];
-      fila.querySelector('.pq').textContent = preg ? preg.texto : '';
+
+      /* La pregunta no se proyecta hasta que el jugador en turno la contesta, para
+         que no vaya leyendo las que siguen. Al revelar ya se ven todas. */
+      var verPregunta = revelando || !!pr.respuestas[pr.jugador][i];
+      fila.querySelector('.pq').textContent = !preg ? '' : (verPregunta ? preg.texto : '');
+      fila.classList.toggle('pq-tapada', !!preg && !verPregunta);
       fila.classList.toggle('actual', pr.etapa === 'captura' && pr.actual === i);
 
       [0, 1].forEach(function (j) {
@@ -153,16 +174,21 @@
         var reservada = j === 0 && pr.jugador === 1 && (pr.etapa === 'prep' || pr.etapa === 'captura');
         var n = reservada ? 0 : Motor.premioNivel(pr.revelado[j][i]);
         var oculta = !!r && n === 0;
-        var verTexto = !!r && n >= 1;
-        var verPuntos = !!r && n >= 2;
+        /* Si el jugador no alcanzó a contestar, en la revelación sale igual con
+           un 0 en rojo: la casilla no se queda en blanco. */
+        var vacia = !r && !reservada && n >= 1;
+        var verTexto = (!!r && n >= 1) || vacia;
+        var verPuntos = (!!r && n >= 2) || vacia;
+        var enCero = verPuntos && (vacia || !!r.dup || r.p === 0);
 
         celda.classList.toggle('oculta-cell', oculta);
         celda.classList.toggle('llena', verTexto);
-        celda.classList.toggle('dup', verPuntos && !!r.dup);
-        celda.classList.toggle('cero', verPuntos && !r.dup && r.p === 0);
+        celda.classList.toggle('dup', verPuntos && !vacia && !!r.dup);
+        celda.classList.toggle('cero', enCero);
         celda.querySelector('.marca').textContent = oculta ? '✓' : '';
-        celda.querySelector('.t').textContent = verTexto ? r.t : '';
-        celda.querySelector('.p').textContent = verPuntos ? (r.dup ? 0 : r.p) : '';
+        celda.querySelector('.t').textContent = !verTexto ? ''
+          : (vacia ? 'SIN RESPUESTA' : (r.t || (r.fuera ? 'NO ESTÁ EN EL TABLERO' : '')));
+        celda.querySelector('.p').textContent = verPuntos ? (vacia || r.dup ? 0 : r.p) : '';
       });
     }
 
@@ -255,12 +281,38 @@
     setTimeout(function () { cont.innerHTML = ''; }, 7000);
   }
 
+  /* Música de ambiente en bucle. Solo suena si existe el MP3; sin archivo hay
+     silencio, porque un bucle sintetizado sería insoportable. */
+  function ambiente(e) {
+    var pr = e.premio;
+    var enPremio = !!(pr && pr.activo);
+
+    /* Resultado final: primero el sonido de victoria o de tristeza y, al acabar,
+       la música de cierre repitiéndose. */
+    if (enPremio && pr.etapa === 'fin') {
+      Sonidos.bucleTras('introduccion', pr.resultado === 'gana' ? 'premio-gana' : 'premio-pierde');
+      return;
+    }
+    /* Espera entre ganar la partida y arrancar el Premio Rápido. */
+    if (enPremio && pr.etapa === 'prep' && pr.jugador === 0 && e.fase === 'fin') {
+      Sonidos.bucle(['transicion', 'introduccion']);
+      return;
+    }
+    /* Arranque del juego, mientras no hay pregunta en el tablero. */
+    if (!enPremio && !e.pregunta) {
+      Sonidos.bucle('introduccion');
+      return;
+    }
+    Sonidos.pararBucle();
+  }
+
   /* ---------- Conexion ---------- */
   function recibir(e) {
     estado = e;
     pintar(e);
     animarEvento(e);
     tictac(e);
+    ambiente(e);
   }
 
   var etiquetaSala = Bus.sala !== 'principal' ? ' · sala ' + Bus.sala : '';
@@ -276,8 +328,7 @@
   if (etiquetaSala) $('estadoConexion').textContent += etiquetaSala;
 
   var inicial = bus.pedirEstado();
-  if (inicial) recibir(inicial);
-  else pintar(Motor.estadoInicial({}));
+  recibir(inicial || Motor.estadoInicial({}));   // recibir, no solo pintar: arranca la música
 
   /* ---------- Controles del tablero ---------- */
   $('btnPantalla').addEventListener('click', function () {
@@ -305,9 +356,13 @@
   });
 
   /* Los navegadores exigen un gesto del usuario para habilitar audio. */
+  /* Los navegadores no dejan sonar nada hasta que el usuario toca la página. Al
+     primer gesto se despierta el audio y se reintenta la música de ambiente, que
+     puede haber quedado bloqueada al cargar. */
   ['click', 'keydown', 'touchstart'].forEach(function (ev) {
     document.addEventListener(ev, function once() {
       Sonidos.despertar();
+      if (estado) { Sonidos.pararBucle(); ambiente(estado); }
       document.removeEventListener(ev, once);
     });
   });
