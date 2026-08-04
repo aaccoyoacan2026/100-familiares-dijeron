@@ -10,8 +10,21 @@ Las mayúsculas no importan: ACIERTO.MP3 funciona igual que acierto.mp3.
 Lo que SÍ importa es la parte de antes del punto: tiene que ser uno de los
 nombres de la lista de abajo, tal cual.
 
+MÚSICA DE AMBIENTE (se repiten en bucle)
+  introduccion.mp3    Suena al abrir el juego, mientras no hay pregunta en el
+                      tablero, y se corta al asignar la primera. Vuelve a sonar
+                      como música de cierre en el resultado del Premio Rápido.
+  transicion.mp3      Suena mientras se ve el mensaje de ganador, esperando a
+                      que pulses "Comenzar los 25 segundos". Si no lo pones, se
+                      usa introduccion.mp3 en su lugar.
+
+  Estas dos SOLO funcionan con archivo: no tienen sonido sintetizado de
+  respaldo, porque un bucle inventado sería insoportable. Sin el archivo,
+  simplemente hay silencio.
+
 JUEGO PRINCIPAL
-  acierto.mp3         Respuesta correcta, se destapa una casilla
+  acierto.mp3         Respuesta correcta, se destapa una casilla.
+                      En el Premio Rápido suena al mostrar LA RESPUESTA.
   error.mp3           Error / tacha roja
   traspaso.mp3        El turno pasa al otro equipo por fallar el cara a cara
   robo.mp3            Robo exitoso
@@ -31,8 +44,10 @@ PREMIO RÁPIDO
                         cuando pausas y se corta al terminar la captura.
   premio-captura.mp3    Se registra una respuesta, y también cuando se
                         destapa el TEXTO de una respuesta al revelar
-  premio-duplicada.mp3  BLOQUEO: el jugador 2 intenta repetir una respuesta
-                        del jugador 1. El sistema no la deja registrar.
+  premio-duplicada.mp3  BLOQUEO (bep bep): el jugador 2 intenta repetir una
+                        respuesta del jugador 1. No la deja registrar y puede
+                        dar otra. Sin archivo suena un bep bep sintetizado.
+  premio-puntos.mp3     Suena al destapar EL PUNTAJE de una respuesta
   premio-tic.mp3        Tic de los últimos 5 segundos
   premio-tiempo.mp3     Se acabó el tiempo
   premio-gana.mp3       Llegaron a la meta
