@@ -182,6 +182,8 @@ body::before {
   margin-top: 2px;
   text-shadow: 0 3px 0 rgba(0,0,0,.55);
 }
+/* La pregunta aún no se proyecta: se avisa sin revelar el texto. */
+.pregunta .texto.tapada { color: var(--ambar); opacity: .75; letter-spacing: .06em; }
 
 /* ============ Marco con foquitos ============ */
 .marco {
@@ -524,6 +526,8 @@ body::before {
   color: #dbe6ff;
 }
 .pfila.actual .pq { border-color: var(--ambar); box-shadow: 0 0 0 2px rgba(255,201,60,.45); }
+/* Pregunta del Premio Rápido todavía sin contestar: no se proyecta el texto. */
+.pfila.pq-tapada .pq { background: rgba(255,255,255,.04); border-style: dashed; opacity: .5; }
 
 .pr {
   grid-template-columns: 1fr auto;
