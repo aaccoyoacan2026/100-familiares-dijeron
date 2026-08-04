@@ -5,7 +5,7 @@ Juego de encuestas por equipos para proyectar en una TV, con **panel de control 
 - 160 preguntas incluidas (120 de 5 respuestas y 40 de 6 a 8)
 - Tablero de una o dos columnas dentro de un marco de foquitos
 - Reglas completas: cara a cara, traspaso automático de turno, 3 errores, robo y rondas dobles o triples
-- Premio Rápido con dos jugadores, reloj de 20 y 25 segundos y detección de respuestas repetidas
+- Premio Rápido con dos jugadores, reloj de 25 segundos cada uno, revelación en dos tiempos y bloqueo de respuestas repetidas
 - Efectos de sonido sintetizados, sustituibles por tus propios MP3
 - Sin base de datos, sin cuentas, sin analítica
 
@@ -31,9 +31,7 @@ Sin Node también funciona: doble clic en `index.html` y en `panel.html`, en dos
 
 Hay dos formas y sirven para cosas distintas. Puedes usar las dos a la vez.
 
-### A) GitHub Pages — gratis y siempre encendido
-
-Publica el sitio estático. El tablero y el panel se sincronizan **dentro del mismo navegador**, así que sirve cuando la laptop conectada a la TV también tiene abierto el panel en otra ventana.
+### A) GitHub Pages + Firebase — gratis, siempre encendido y con control desde el celular
 
 1. Sube el proyecto a un repositorio de GitHub.
 2. Ve a **Settings → Pages** y en *Source* elige **GitHub Actions**.
@@ -41,7 +39,15 @@ Publica el sitio estático. El tablero y el panel se sincronizan **dentro del mi
 
 Tu URL queda como `https://USUARIO.github.io/REPO/`.
 
-> **Limitación importante:** en Pages no hay servidor, así que el panel del celular **no** puede controlar una TV distinta. Para eso está la opción B.
+**Para que el panel del celular controle una TV distinta**, hace falta un paso más: GitHub Pages solo entrega archivos, no puede pasar el estado de un dispositivo a otro. Abre **`js/config-nube.js`** y sigue las instrucciones que trae para crear una base gratuita de Firebase (5 minutos, una sola vez) y pegar ahí su URL.
+
+Sin ese paso el juego funciona igual, pero el tablero y el panel solo se sincronizan **dentro del mismo navegador**. La etiqueta de arriba a la derecha te dice en cuál de los tres modos estás:
+
+| Etiqueta | Qué significa |
+|---|---|
+| `conectado por internet` | Firebase configurado: panel y tablero en dispositivos distintos, en cualquier red |
+| `conectado por red local` | Estás usando `servidor.js`: dispositivos distintos, misma WiFi |
+| `modo local` | Solo se sincroniza con otra ventana de esa misma computadora |
 
 ### B) Un servidor Node gratuito — control desde el celular por internet
 

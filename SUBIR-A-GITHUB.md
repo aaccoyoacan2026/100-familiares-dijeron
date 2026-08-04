@@ -2,6 +2,44 @@
 
 Guía para hacerlo una sola vez. Después, cada cambio se publica solo.
 
+---
+
+## 0. Revisión de 5 minutos antes de subir
+
+Hazla en tu computadora, con el servidor encendido (`node servidor.js` o doble clic en `INICIAR.bat`).
+
+**Prueba automática**
+
+1. Abre `http://localhost:8080/prueba.html`.
+2. Abajo debe decir **“XX pruebas OK · 0 fallidas”** en verde. Si algo sale en rojo, anótalo y no subas todavía.
+
+**Prueba a mano (juego principal)**
+
+3. Abre `http://localhost:8080/` (tablero) y `http://localhost:8080/panel.html` (panel) en dos ventanas.
+4. En el panel: escribe los nombres de los equipos → deben cambiar en la TV.
+5. **Nueva pregunta** → aparece en la TV con las casillas numeradas.
+6. Toca una respuesta → se voltea la casilla, suena y sube el bote.
+7. Toca **ERROR** → sale la tacha grande. Al tercer error debe pasar al robo.
+8. Prueba **×2**, **Revelar todas**, **Darle el bote** y **↺ Reiniciar**.
+9. Saca una pregunta del banco **Extendido (6 a 8)** → debe verse en dos columnas.
+
+**Prueba a mano (Premio Rápido)**
+
+10. Sube los puntos con **+5** hasta pasar la meta: la TV debe cambiar sola a la pantalla del Premio Rápido.
+11. Comienza el reloj, registra 5 respuestas → en la TV solo se ven palomitas, sin texto.
+12. **Terminar y revelar** → destapa una por una.
+13. **Pasar al jugador 2** → la columna del jugador 1 se vuelve a tapar.
+14. **Ver resultado** → aparecen las dos columnas y el total.
+
+Si los 14 pasos funcionan, el proyecto está listo para subirse.
+
+**Revisión del contenido**
+
+15. ¿La carpeta `sonidos/` tiene MP3 de los que no tienes derechos? Bórralos antes de subir.
+16. Abre `LICENSE` y cambia el nombre si el autor no eres tú.
+
+---
+
 ## 1. Crear el repositorio
 
 1. Entra a [github.com/new](https://github.com/new).

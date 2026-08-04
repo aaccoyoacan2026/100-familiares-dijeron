@@ -1,14 +1,21 @@
-# Despliegue en Render (https://render.com) — plan gratuito.
-# En Render: New > Blueprint > conecta este repositorio.
+# Despliegue opcional en Render (https://render.com) para tener una liga publica
+# con el servidor de sincronia incluido, sin depender de Firebase.
+#
+# Como usarlo:
+#   1. Entra a render.com con tu cuenta de GitHub.
+#   2. New -> Blueprint -> elige este repositorio. Render lee este archivo solo.
+#   3. Al terminar te da una URL tipo https://cien-familiares-dijeron.onrender.com
+#        Tablero: <URL>/          Panel: <URL>/panel.html
+#
+# Nota: en el plan gratuito el servicio se duerme si nadie lo usa por 15 minutos
+# y tarda ~30 segundos en despertar. Abrelo unos minutos antes del evento.
 services:
   - type: web
-    name: cien-personas-dijeron
+    name: cien-familiares-dijeron
     runtime: node
     plan: free
     region: oregon
-    buildCommand: echo "Sin dependencias que instalar"
+    buildCommand: echo "El juego no tiene dependencias que instalar"
     startCommand: node servidor.js
     healthCheckPath: /salud
-    envVars:
-      - key: NODE_VERSION
-        value: "20"
+    autoDeploy: true

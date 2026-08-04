@@ -11,11 +11,14 @@
     'premio-inicio', 'premio-arranque', 'premio-captura', 'premio-duplicada',
     'premio-tic', 'premio-tiempo', 'premio-gana', 'premio-pierde'
   ];
-  var EXTENSIONES = ['mp3', 'wav', 'ogg', 'm4a'];
+  /* Se aceptan varias extensiones. "mp3.mpeg" y "mpeg" estan incluidas porque algunos
+     navegadores y gestores de descargas guardan los MP3 con ese nombre. */
+  var EXTENSIONES = ['mp3', 'mp3.mpeg', 'mpeg', 'wav', 'ogg', 'm4a', 'mp4'];
   var CARPETA = 'sonidos/';
 
   var ctx = null, activo = true, usarMp3 = true;
   var pistas = {};        // clave -> url del archivo detectado
+  var precargadas = {};   // clave -> <audio> ya cargado, para que suene sin retraso
 
   /* ---------------- WebAudio (respaldo sintetizado) ---------------- */
   function ac() {
@@ -119,32 +122,74 @@
     }
   };
 
-  /* ---------------- Archivos MP3 ---------------- */
-  function probar(clave, url) {
-    var a = new Audio();
-    a.preload = 'auto';
-    a.addEventListener('canplaythrough', function () { pistas[clave] = url; }, { once: true });
-    a.src = url;
-    a.load();
+  /* ---------------- Archivos de audio ---------------- */
+
+  /* Deja el archivo cargado en memoria para que suene sin retraso la primera vez. */
+  function registrar(clave, url) {
+    if (pistas[clave]) return;
+    pistas[clave] = url;
+    try { var a = new Audio(); a.preload = 'auto'; a.src = url; a.load(); precargadas[clave] = a; } catch (e) {}
   }
 
-  /* Busca sonidos/<clave>.mp3 al arrancar. Los que no existan simplemente no se registran. */
+  /* Prueba una lista de URLs en orden y se queda con la primera que exista.
+     Por http/https basta una peticion HEAD; con doble clic (file://) hay que
+     recurrir al elemento <audio>, que si puede leer archivos locales. */
+  function probar(clave, urls) {
+    var i = 0;
+    var porRed = /^https?:/.test(location.protocol);
+
+    (function siguiente() {
+      if (i >= urls.length) return;
+      var url = urls[i++];
+
+      if (porRed) {
+        fetch(url, { method: 'HEAD' })
+          .then(function (r) {
+            if (r.ok) registrar(clave, url);
+            else siguiente();
+          })
+          .catch(siguiente);
+        return;
+      }
+
+      var a = new Audio();
+      a.preload = 'metadata';
+      var listo = false;
+      a.addEventListener('loadedmetadata', function () { listo = true; registrar(clave, url); }, { once: true });
+      a.addEventListener('error', function () { if (!listo) siguiente(); }, { once: true });
+      a.src = url;
+      a.load();
+    })();
+  }
+
+  /* Busca sonidos/<clave>.<ext> al arrancar. Los que no existan no se registran. */
   function autodetectar() {
     if (!usarMp3) return;
-    CLAVES.forEach(function (k) { probar(k, CARPETA + k + '.mp3'); });
+    CLAVES.forEach(function (k) {
+      probar(k, EXTENSIONES.map(function (ext) { return CARPETA + k + '.' + ext; }));
+    });
+  }
+
+  /* De "premio-tic.mp3.mpeg" saca "premio-tic". Devuelve null si no es un nombre valido. */
+  function claveDe(nombre) {
+    var n = String(nombre).toLowerCase().split(/[\\/]/).pop();
+    for (var i = 0; i < CLAVES.length; i++) {
+      var k = CLAVES[i];
+      if (n === k) return k;
+      if (n.indexOf(k + '.') === 0 && EXTENSIONES.indexOf(n.slice(k.length + 1)) !== -1) return k;
+    }
+    return null;
   }
 
   /* Carga manual: el usuario elige una carpeta y se emparejan los archivos por nombre. */
   function usarCarpeta(archivos) {
     var encontrados = [];
     Array.prototype.forEach.call(archivos, function (f) {
-      var partes = f.name.toLowerCase().split('.');
-      var ext = partes.pop();
-      var base = partes.join('.');
-      if (EXTENSIONES.indexOf(ext) === -1) return;
-      if (CLAVES.indexOf(base) === -1) return;
-      pistas[base] = URL.createObjectURL(f);
-      encontrados.push(base);
+      var k = claveDe(f.name);
+      if (!k) return;
+      delete pistas[k];                       // lo elegido a mano gana sobre lo autodetectado
+      registrar(k, URL.createObjectURL(f));
+      if (encontrados.indexOf(k) === -1) encontrados.push(k);
     });
     return encontrados;
   }
@@ -154,7 +199,10 @@
     if (!activo || !nombre) return;
     if (usarMp3 && pistas[nombre]) {
       try {
-        var a = new Audio(pistas[nombre]);
+        /* Reusa el archivo ya precargado si no esta sonando; si no, abre otra copia. */
+        var a = precargadas[nombre];
+        if (a && a.paused) a.currentTime = 0;
+        else a = new Audio(pistas[nombre]);
         a.volume = 1;
         a.play().catch(function () { caerASintetizado(nombre); });
         return;

@@ -214,12 +214,24 @@
   /* =========================================================================
      SEGUNDO JUEGO: PREMIO RAPIDO
      Dos jugadores del equipo ganador contestan las mismas 5 preguntas.
-     El primero tiene 20 s y el segundo 25 s; el segundo no puede repetir
-     respuestas. Juntos deben sumar la meta (200 por defecto).
+     Cada uno tiene 25 segundos. El jugador 2 no puede repetir una respuesta
+     que ya dio el jugador 1: el sistema la bloquea. Juntos deben sumar la
+     meta (200 por defecto).
+
+     REVELACION EN DOS TIEMPOS
+     revelado[jugador][i] es un nivel, no un si/no:
+       0 = tapado
+       1 = se ve la respuesta que dio
+       2 = se ve tambien el puntaje (y hasta entonces suma al total)
+     Al pasar al jugador 2, todo lo del jugador 1 queda en nivel 2, y las del
+     jugador 2 se van descubriendo una por una.
      ========================================================================= */
 
-  var TIEMPOS = [20, 25];
+  var TIEMPOS = [25, 25];
   var vacio5 = function (v) { return [v, v, v, v, v]; };
+
+  /* Tolera partidas guardadas con el formato viejo (true/false). */
+  function nivel(v) { return v === true ? 2 : (v === false || v == null ? 0 : (v | 0)); }
 
   function iniciarPremio(est, preguntas, nombres, meta) {
     var e = clonar(est);
@@ -232,7 +244,7 @@
       meta: meta || 200,
       preguntas: preguntas.slice(0, 5),
       respuestas: [vacio5(null), vacio5(null)],
-      revelado: [vacio5(false), vacio5(false)],
+      revelado: [vacio5(0), vacio5(0)],
       actual: 0,
       reloj: { restante: TIEMPOS[0], limite: TIEMPOS[0], corriendo: false },
       resultado: null
@@ -247,7 +259,7 @@
     var s = 0;
     [0, 1].forEach(function (j) {
       pr.respuestas[j].forEach(function (r, i) {
-        if (r && pr.revelado[j][i] && !r.dup) s += r.p;
+        if (r && nivel(pr.revelado[j][i]) >= 2 && !r.dup) s += r.p;
       });
     });
     return s;
@@ -265,11 +277,16 @@
       pr.respuestas[pr.jugador][i] = { sel: -1, t: 'No está en el tablero', p: 0, dup: false };
       marcar(e, 'error', 1);
     } else {
-      var r = preg.respuestas[sel];
+      /* El jugador 2 no puede repetir lo que ya dijo el jugador 1: se bloquea.
+         No se registra nada y no se avanza de pregunta; solo suena el aviso. */
       var otra = pr.respuestas[1 - pr.jugador][i];
-      var dup = pr.jugador === 1 && otra && otra.sel === sel;
-      pr.respuestas[pr.jugador][i] = { sel: sel, t: r.t, p: r.p, dup: !!dup };
-      marcar(e, dup ? 'premio-duplicada' : 'premio-captura', i);
+      if (pr.jugador === 1 && otra && otra.sel === sel) {
+        marcar(e, 'premio-duplicada', i);
+        return e;
+      }
+      var r = preg.respuestas[sel];
+      pr.respuestas[pr.jugador][i] = { sel: sel, t: r.t, p: r.p, dup: false };
+      marcar(e, 'premio-captura', i);
     }
     if (pr.actual < 4) pr.actual += 1;
     return e;
@@ -311,26 +328,46 @@
     return e;
   }
 
+  /* Cierra la captura y pasa a la revelacion, sin descubrir nada todavia. */
+  function premioCerrarCaptura(est) {
+    var e = clonar(est);
+    if (!e.premio) return est;
+    e.premio.etapa = 'revela';
+    e.premio.reloj.corriendo = false;
+    marcar(e, 'turno');
+    return e;
+  }
+
+  /* Un toque sube UN nivel: primero aparece la respuesta, luego su puntaje. */
   function premioRevelar(est, i) {
     var e = clonar(est), pr = e.premio;
     if (!pr) return est;
     pr.etapa = 'revela';
     pr.reloj.corriendo = false;
     var j = pr.jugador;
-    if (i == null) {                       // revelar la siguiente pendiente
-      i = pr.revelado[j].indexOf(false);
+
+    if (i == null) {                       // la siguiente que quede pendiente
+      i = -1;
+      for (var k = 0; k < 5; k++) {
+        if (nivel(pr.revelado[j][k]) < 2) { i = k; break; }
+      }
       if (i === -1) return est;
     }
-    if (pr.revelado[j][i]) return est;
-    pr.revelado[j][i] = true;
+
+    var n = nivel(pr.revelado[j][i]);
+    if (n >= 2) return est;
+    pr.revelado[j][i] = n + 1;
+
     var r = pr.respuestas[j][i];
-    marcar(e, !r || r.dup || r.p === 0 ? 'error' : 'acierto', i);
+    if (n === 0) marcar(e, 'premio-captura', i);                          // sale la respuesta
+    else marcar(e, !r || r.dup || r.p === 0 ? 'error' : 'acierto', i);    // sale el puntaje
     return e;
   }
 
   function premioSiguienteJugador(est) {
     var e = clonar(est), pr = e.premio;
     if (!pr || pr.jugador === 1) return est;
+    pr.revelado[0] = vacio5(2);            // el jugador 1 queda descubierto por completo
     pr.jugador = 1;
     pr.etapa = 'prep';
     pr.actual = 0;
@@ -342,7 +379,7 @@
   function premioFinal(est) {
     var e = clonar(est), pr = e.premio;
     if (!pr) return est;
-    pr.revelado = [vacio5(true), vacio5(true)];
+    pr.revelado = [vacio5(2), vacio5(2)];
     pr.etapa = 'fin';
     pr.reloj.corriendo = false;
     pr.resultado = premioTotal(e) >= pr.meta ? 'gana' : 'pierde';
@@ -401,6 +438,7 @@
     preguntasAleatorias: preguntasAleatorias,
 
     TIEMPOS_PREMIO: TIEMPOS,
+    premioNivel: nivel,
     iniciarPremio: iniciarPremio,
     premioTotal: premioTotal,
     premioResponder: premioResponder,
@@ -408,6 +446,7 @@
     premioIrA: premioIrA,
     premioComenzar: premioComenzar,
     premioReloj: premioReloj,
+    premioCerrarCaptura: premioCerrarCaptura,
     premioRevelar: premioRevelar,
     premioSiguienteJugador: premioSiguienteJugador,
     premioFinal: premioFinal,

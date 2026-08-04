@@ -80,8 +80,10 @@
   ok('con 2 errores rojo sigue jugando', j.fase === 'ronda' && j.errores[ROJO] === 2);
   j = Motor.fallar(j);
   ok('al tercer error se abre el robo', j.fase === 'robo' && j.robador === AZUL);
+  /* Al robar, la respuesta destapada también entra al bote: 65 + 15 = 80. */
   var jGana = Motor.acertar(j, 2);
-  ok('azul roba y se lleva los 65 puntos', jGana.equipos[AZUL].puntos === 65 && jGana.equipos[ROJO].puntos === 0);
+  ok('azul roba y se lleva 80 (los 65 del bote + los 15 que destapó)',
+     jGana.equipos[AZUL].puntos === 80 && jGana.equipos[ROJO].puntos === 0);
   ok('tras el robo la ronda queda resuelta', jGana.fase === 'resuelta');
   var jFalla = Motor.fallar(j);
   ok('si azul falla el robo, los puntos son de rojo', jFalla.equipos[ROJO].puntos === 65 && jFalla.equipos[AZUL].puntos === 0);
@@ -123,7 +125,7 @@
 
   var pg = Motor.iniciarPremio(g, cinco, ['Ana', 'Beto'], 200);
   ok('arranca en preparación con el jugador 1', pg.premio.activo && pg.premio.etapa === 'prep' && pg.premio.jugador === 0);
-  ok('el jugador 1 tiene 20 segundos', pg.premio.reloj.limite === 20);
+  ok('el jugador 1 tiene 25 segundos', pg.premio.reloj.limite === 25);
   ok('toma exactamente 5 preguntas', pg.premio.preguntas.length === 5);
 
   pg = Motor.premioComenzar(pg);
@@ -138,23 +140,55 @@
   pg = Motor.premioResponder(pg, 2);                       // 15
   pg = Motor.premioResponder(pg, 3);                       // 12  -> jugador 1 suma 92
 
+  var cerrada = Motor.premioCerrarCaptura(pg);
+  ok('al cerrar la captura nada queda a la vista todavía',
+     cerrada.premio.etapa === 'revela' &&
+     cerrada.premio.revelado[0].every(function (v) { return Motor.premioNivel(v) === 0; }) &&
+     Motor.premioTotal(cerrada) === 0);
+  ok('las respuestas sí quedaron guardadas', cerrada.premio.respuestas[0].filter(Boolean).length === 5);
+
+  /* La revelación va en dos tiempos: primero la respuesta, luego el puntaje. */
+  pg = Motor.premioRevelar(cerrada, 0);
+  ok('el primer toque solo destapa la respuesta',
+     Motor.premioNivel(pg.premio.revelado[0][0]) === 1 && Motor.premioTotal(pg) === 0);
   pg = Motor.premioRevelar(pg, 0);
-  ok('revelar de a una va sumando el total', Motor.premioTotal(pg) === 40 && pg.premio.etapa === 'revela');
+  ok('el segundo toque destapa el puntaje y suma',
+     Motor.premioNivel(pg.premio.revelado[0][0]) === 2 && Motor.premioTotal(pg) === 40);
+  ok('un toque de más no altera nada', Motor.premioTotal(Motor.premioRevelar(pg, 0)) === 40);
 
   pg = Motor.premioSiguienteJugador(pg);
   ok('pasa al jugador 2 con 25 segundos', pg.premio.jugador === 1 && pg.premio.reloj.limite === 25);
+  ok('al pasar al jugador 2 se destapa completo el jugador 1',
+     pg.premio.revelado[0].every(function (v) { return Motor.premioNivel(v) === 2; }) &&
+     Motor.premioTotal(pg) === 92);
+  ok('y las del jugador 2 siguen tapadas',
+     pg.premio.revelado[1].every(function (v) { return Motor.premioNivel(v) === 0; }));
 
+  /* El jugador 1 contestó: q0=0, q1=(no está), q2=1, q3=2, q4=3. */
   pg = Motor.premioComenzar(pg);
-  pg = Motor.premioResponder(pg, 0);                       // repetida (jugador 1 ya dijo la 0)
-  ok('detecta la respuesta repetida', pg.premio.respuestas[1][0].dup === true);
-  pg = Motor.premioResponder(pg, 0);                       // 40
-  pg = Motor.premioResponder(pg, 0);                       // 40
-  pg = Motor.premioResponder(pg, 0);                       // 40
-  pg = Motor.premioResponder(pg, 0);                       // 40  -> jugador 2 suma 160
+  var bloqueo = Motor.premioResponder(pg, 0);              // repetida: el jugador 1 ya dijo la 0
+  ok('bloquea la respuesta repetida y no la registra', bloqueo.premio.respuestas[1][0] === null);
+  ok('el bloqueo no avanza de pregunta', bloqueo.premio.actual === 0);
+  ok('el bloqueo dispara su sonido', bloqueo.evento.tipo === 'premio-duplicada');
+
+  pg = Motor.premioResponder(pg, 1);                       // q0 -> 25 (distinta, sí pasa)
+  ok('una respuesta distinta sí se registra y avanza',
+     pg.premio.respuestas[1][0].p === 25 && pg.premio.actual === 1);
+  pg = Motor.premioResponder(pg, 0);                       // q1 -> 40
+  pg = Motor.premioResponder(pg, 0);                       // q2 -> 40
+  pg = Motor.premioResponder(pg, 0);                       // q3 -> 40
+  pg = Motor.premioResponder(pg, 0);                       // q4 -> 40  (jugador 2 suma 185)
 
   var fin = Motor.premioFinal(pg);
-  ok('el total suma a los dos jugadores y descuenta la repetida', Motor.premioTotal(fin) === 252);
+  ok('el total suma a los dos jugadores', Motor.premioTotal(fin) === 92 + 185);
+  ok('al final todo queda revelado', fin.premio.revelado.every(function (fila) {
+     return fila.every(function (v) { return Motor.premioNivel(v) === 2; }); }));
   ok('gana si alcanza la meta', fin.premio.resultado === 'gana' && fin.premio.etapa === 'fin');
+
+  /* Partidas guardadas con el formato viejo (true/false) se siguen leyendo. */
+  var viejo = JSON.parse(JSON.stringify(fin));
+  viejo.premio.revelado = [[true, true, true, true, true], [false, false, false, false, false]];
+  ok('lee el formato viejo de revelado', Motor.premioTotal(viejo) === 92);
 
   var apretado = Motor.premioFinal(Motor.iniciarPremio(g, cinco, ['Ana', 'Beto'], 300));
   ok('pierde si no alcanza la meta', apretado.premio.resultado === 'pierde');

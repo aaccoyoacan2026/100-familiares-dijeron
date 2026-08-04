@@ -26,11 +26,11 @@
     <div class="pr-resumen">
       <div><small>Jugador en turno</small><b id="prTurno">—</b></div>
       <div><small>Total</small><b id="prTotal" class="oro">0</b></div>
-      <div><small>Reloj</small><b id="prReloj">20</b></div>
+      <div><small>Reloj</small><b id="prReloj">25</b></div>
     </div>
     <div class="dos" style="margin-top:10px">
       <div>
-        <label>Jugador 1 (20 s)</label>
+        <label>Jugador 1 (25 s)</label>
         <input type="text" id="prNombre1" placeholder="Nombre">
       </div>
       <div>
@@ -46,7 +46,7 @@
 
     <!-- Preparación -->
     <div id="prPrep">
-      <button class="grande verde" id="prComenzar" style="width:100%">▶ Comenzar los 20 segundos</button>
+      <button class="grande verde" id="prComenzar" style="width:100%">▶ Comenzar los 25 segundos</button>
     </div>
 
     <!-- Captura -->
@@ -227,6 +227,12 @@
 <div class="tarjeta">
   <details>
     <summary>Sala y enlace del tablero</summary>
+    <p class="nota aviso-nube" id="avisoNube" hidden>
+      <b>La sincronía por internet no está configurada.</b> Así, el panel y el tablero solo
+      se ven entre sí en la misma computadora. Para usarlos en dos dispositivos distintos,
+      abre <code>js/config-nube.js</code> y sigue los pasos de Firebase que vienen ahí
+      (son 5 minutos, una sola vez).
+    </p>
     <p class="nota">Sala actual: <code id="salaActual">principal</code></p>
     <label>Enlace del tablero (ábrelo en la TV)</label>
     <input type="text" id="urlTablero" readonly>
@@ -267,6 +273,7 @@
 </div><!-- /juego1 -->
 
 <script src="js/motor.js"></script>
+<script src="js/config-nube.js"></script>
 <script src="js/bus.js"></script>
 <script src="js/banco.js"></script>
 <script src="js/sonidos.js"></script>

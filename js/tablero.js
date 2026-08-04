@@ -146,18 +146,23 @@
         var celda = fila.children[j + 1];
         var r = pr.respuestas[j][i];
 
-        /* Una respuesta solo se ve cuando se revela. Además, lo del jugador 1
-           vuelve a taparse mientras juega el jugador 2, hasta el resultado final. */
-        var reservada = j === 0 && pr.jugador === 1 && pr.etapa !== 'fin';
-        var tapada = !pr.revelado[j][i] || reservada;
+        /* Lo del jugador 1 se vuelve a tapar mientras el jugador 2 se prepara y
+           contesta, para que no lo vea. En cuanto empieza la revelación del
+           jugador 2 reaparece completo, y solo entonces se descubren las del 2.
+           Nivel 1 muestra la respuesta; nivel 2 agrega el puntaje. */
+        var reservada = j === 0 && pr.jugador === 1 && (pr.etapa === 'prep' || pr.etapa === 'captura');
+        var n = reservada ? 0 : Motor.premioNivel(pr.revelado[j][i]);
+        var oculta = !!r && n === 0;
+        var verTexto = !!r && n >= 1;
+        var verPuntos = !!r && n >= 2;
 
-        celda.classList.toggle('oculta-cell', tapada);
-        celda.classList.toggle('llena', !!r && !tapada);
-        celda.classList.toggle('dup', !tapada && !!(r && r.dup));
-        celda.classList.toggle('cero', !tapada && !!(r && !r.dup && r.p === 0));
-        celda.querySelector('.marca').textContent = tapada && r ? '✓' : '';
-        celda.querySelector('.t').textContent = tapada ? '' : (r ? r.t : '');
-        celda.querySelector('.p').textContent = tapada ? '' : (r ? (r.dup ? 0 : r.p) : '');
+        celda.classList.toggle('oculta-cell', oculta);
+        celda.classList.toggle('llena', verTexto);
+        celda.classList.toggle('dup', verPuntos && !!r.dup);
+        celda.classList.toggle('cero', verPuntos && !r.dup && r.p === 0);
+        celda.querySelector('.marca').textContent = oculta ? '✓' : '';
+        celda.querySelector('.t').textContent = verTexto ? r.t : '';
+        celda.querySelector('.p').textContent = verPuntos ? (r.dup ? 0 : r.p) : '';
       });
     }
 
@@ -166,7 +171,9 @@
       prep: 'Se prepara ' + quien + ' · ' + pr.reloj.limite + ' segundos',
       captura: 'Responde ' + quien + ' · pregunta ' + (pr.actual + 1) +
         ' de 5 · las respuestas se revelan al terminar',
-      revela: 'Revelando las respuestas de ' + quien,
+      revela: pr.jugador === 1
+        ? 'Respuestas de ' + (pr.nombres[0] || 'Jugador 1') + ' a la vista · revelando las de ' + quien
+        : 'Revelando las respuestas de ' + quien,
       fin: 'Resultado final'
     };
     $('pPie').textContent = pie[pr.etapa] || '';
@@ -243,10 +250,13 @@
 
   var etiquetaSala = Bus.sala !== 'principal' ? ' · sala ' + Bus.sala : '';
   bus.onEstado(recibir);
+  var TEXTO_MODO = {
+    servidor: 'Conectado por red local · el panel puede estar en el celular',
+    nube: 'Conectado por internet · el panel puede estar en cualquier dispositivo',
+    local: 'Modo local · solo se sincroniza con otra ventana de esta misma computadora'
+  };
   bus.alCambiarModo = function (m) {
-    $('estadoConexion').textContent = (m === 'servidor'
-      ? 'Conectado por red · el panel puede estar en el celular'
-      : 'Modo local · abre panel.html en otra ventana') + etiquetaSala;
+    $('estadoConexion').textContent = (TEXTO_MODO[m] || TEXTO_MODO.local) + etiquetaSala;
   };
   if (etiquetaSala) $('estadoConexion').textContent += etiquetaSala;
 

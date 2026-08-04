@@ -9,6 +9,7 @@
   var estado = bus.pedirEstado() || Motor.estadoInicial({});
   var inicialElegido = estado.turno || 0;
   var espiando = false;   // ver a propósito lo capturado en el Premio Rápido
+  var firmaPremio = '';   // evita repintar los botones del premio en cada tic del reloj
 
   function publicar(nuevo) {
     estado = talVezPremio(nuevo);
@@ -299,9 +300,10 @@
       prep: 'Aísla al otro jugador. Al presionar comenzar arranca el reloj de ' + pr.reloj.limite + ' segundos.',
       captura: 'Toca la respuesta que dio el jugador, o “No está en el tablero”. Se guarda sin mostrarse: ' +
         'el punto • indica que la pregunta ya quedó registrada. Usa 👁 solo si necesitas corregir.',
-      revela: pr.jugador === 1
-        ? 'Revela una por una. Las repetidas del jugador 1 valen 0.'
-        : 'Revela una por una y luego pasa al jugador 2.',
+      revela: (pr.jugador === 1
+        ? 'Las del jugador 1 ya están a la vista. Ahora revela las del jugador 2. '
+        : 'Revela una por una y luego pasa al jugador 2. ') +
+        'Cada toque descubre primero la respuesta y en el siguiente toque el puntaje.',
       fin: pr.resultado === 'gana' ? '¡Ganaron el premio!' : 'No alcanzaron la meta.'
     };
     $('prAviso').textContent = textos[pr.etapa] || '';
@@ -311,6 +313,13 @@
     var aCiegas = pr.etapa === 'captura' && !espiando;
     $('prEspiar').classList.toggle('on', espiando);
     $('prEspiar').textContent = espiando ? '🙈' : '👁';
+
+    /* El reloj publica cada segundo. Si solo cambió el tiempo, no se reconstruyen
+       los botones: si no, se recrearían bajo el dedo del operador. */
+    var firma = [pr.etapa, pr.jugador, pr.actual, espiando,
+      JSON.stringify(pr.respuestas), JSON.stringify(pr.revelado)].join('|');
+    if (firma === firmaPremio) return;
+    firmaPremio = firma;
 
     /* Pasos 1..5 */
     var pasos = $('prPasos');
@@ -337,35 +346,47 @@
       preg.respuestas.forEach(function (r, i) {
         var dada = pr.respuestas[pr.jugador][pr.actual];
         var otra = pr.respuestas[1 - pr.jugador][pr.actual];
-        var repetiria = pr.jugador === 1 && otra && otra.sel === i && !aCiegas;
+        /* El jugador 2 no puede repetir lo del 1: la casilla queda bloqueada.
+           Se marca siempre (aunque el resto esté a ciegas) porque quien opera
+           necesita verlo para no registrarla por error. */
+        var repetiria = pr.jugador === 1 && otra && otra.sel === i;
         var b = document.createElement('button');
         b.className = 'resp' + (!aCiegas && dada && dada.sel === i ? ' hecha' : '') +
-          (repetiria ? ' repetida' : '');
+          (repetiria ? ' repetida bloqueada' : '');
         b.innerHTML = '<span class="i">' + (i + 1) + '</span><span class="t">' + escapar(r.t) +
-          (repetiria ? ' <em>(ya la dijo)</em>' : '') + '</span><span class="p">' + r.p + '</span>';
-        b.addEventListener('click', function () { publicar(Motor.premioResponder(estado, i)); });
+          (repetiria ? ' <em>(ya la dijo · bloqueada)</em>' : '') + '</span><span class="p">' + r.p + '</span>';
+        b.addEventListener('click', function () {
+          /* El motor la rechaza igual; aquí solo damos el aviso inmediato en el panel. */
+          if (repetiria) { Sonidos.despertar(); Sonidos.reproducir('premio-duplicada'); }
+          publicar(Motor.premioResponder(estado, i));
+        });
         cont.appendChild(b);
       });
     }
 
-    /* Lista de revelacion */
+    /* Lista de revelacion. Cada toque sube un nivel: primero la respuesta, luego el puntaje. */
     var lista = $('prLista');
     lista.innerHTML = '';
+    var siguiente = -1;
     pr.preguntas.forEach(function (p, i) {
       var r = pr.respuestas[pr.jugador][i];
-      var visto = pr.revelado[pr.jugador][i];
+      var n = Motor.premioNivel(pr.revelado[pr.jugador][i]);
+      if (siguiente === -1 && n < 2) siguiente = i;
       var b = document.createElement('button');
-      b.className = 'resp' + (visto ? ' hecha' : '');
+      b.className = 'resp' + (n >= 2 ? ' hecha' : (n === 1 ? ' media' : ''));
       b.innerHTML = '<span class="i">' + (i + 1) + '</span><span class="t">' +
         escapar(r ? r.t : '(sin respuesta)') + '</span><span class="p">' +
-        (visto ? (r && r.dup ? 0 : (r ? r.p : 0)) : '?') + '</span>';
-      b.disabled = visto;
+        (n >= 2 ? (r && r.dup ? 0 : (r ? r.p : 0)) : (n === 1 ? '···' : '?')) + '</span>';
+      b.disabled = n >= 2;
       b.addEventListener('click', function () { publicar(Motor.premioRevelar(estado, i)); });
       lista.appendChild(b);
     });
 
-    var faltan = pr.revelado[pr.jugador].indexOf(false) !== -1;
-    $('prRevelarSig').disabled = !faltan;
+    $('prRevelarSig').disabled = siguiente === -1;
+    $('prRevelarSig').textContent = siguiente === -1 ? 'Todo revelado'
+      : (Motor.premioNivel(pr.revelado[pr.jugador][siguiente]) === 0
+        ? 'Revelar respuesta ' + (siguiente + 1)
+        : 'Revelar puntaje ' + (siguiente + 1));
     $('prSiguienteJugador').hidden = pr.jugador === 1;
     $('prVerResultado').hidden = pr.jugador === 0;
   }
@@ -399,7 +420,7 @@
   $('prNoEsta').addEventListener('click', function () { publicar(Motor.premioResponder(estado, -1)); });
   $('prSaltar').addEventListener('click', function () { publicar(Motor.premioSaltar(estado)); });
   $('prTerminarCaptura').addEventListener('click', function () {
-    publicar(Motor.premioRevelar(estado, 0));
+    publicar(Motor.premioCerrarCaptura(estado));
   });
   $('prRevelarSig').addEventListener('click', function () { publicar(Motor.premioRevelar(estado, null)); });
   $('prSiguienteJugador').addEventListener('click', function () {
@@ -482,11 +503,19 @@
     sincronizarFormulario();
     pintar();
   });
+  var TEXTO_MODO = {
+    servidor: 'conectado por red local',
+    nube: 'conectado por internet',
+    local: 'modo local'
+  };
   bus.alCambiarModo = function (m) {
     var el = $('estadoConexion');
-    el.textContent = m === 'servidor' ? 'conectado por red' : 'modo local';
-    el.classList.toggle('ok', m === 'servidor');
+    el.textContent = TEXTO_MODO[m] || TEXTO_MODO.local;
+    el.classList.toggle('ok', m === 'servidor' || m === 'nube');
+    var pista = $('avisoNube');
+    if (pista) pista.hidden = m !== 'local' || Bus.hayNube;
   };
+  if (!Bus.hayNube && $('avisoNube')) $('avisoNube').hidden = false;
 
   function sincronizarFormulario() {
     if (document.activeElement && document.activeElement.tagName === 'INPUT') return;

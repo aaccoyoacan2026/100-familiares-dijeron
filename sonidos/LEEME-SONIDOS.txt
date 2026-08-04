@@ -1,9 +1,14 @@
 CARPETA DE EFECTOS DE SONIDO
 ============================
 
-Pon aquí tus archivos MP3 con EXACTAMENTE estos nombres (todo en minúsculas,
-sin acentos y con el guion tal cual). El juego los detecta solo al abrirse;
-los que falten se sustituyen por el sonido sintetizado interno.
+Pon aquí tus archivos MP3 con EXACTAMENTE estos nombres (sin acentos y con el
+guion tal cual). El juego los detecta solo al abrirse; los que falten se
+sustituyen por el sonido sintetizado interno.
+
+Se aceptan estas extensiones:  .mp3  .wav  .ogg  .m4a  .mp4  .mpeg  .mp3.mpeg
+Las mayúsculas no importan: ACIERTO.MP3 funciona igual que acierto.mp3.
+Lo que SÍ importa es la parte de antes del punto: tiene que ser uno de los
+nombres de la lista de abajo, tal cual.
 
 JUEGO PRINCIPAL
   acierto.mp3         Respuesta correcta, se destapa una casilla
@@ -20,18 +25,20 @@ JUEGO PRINCIPAL
 
 PREMIO RÁPIDO
   premio-inicio.mp3     Entra la pantalla del Premio Rápido
-  premio-arranque.mp3   Empieza el reloj del jugador
-  premio-captura.mp3    Se registra una respuesta durante la captura
-  premio-duplicada.mp3  El jugador 2 repite una respuesta del jugador 1
+  premio-arranque.mp3   Empieza el reloj del jugador (25 s para cada uno)
+  premio-captura.mp3    Se registra una respuesta, y también cuando se
+                        destapa el TEXTO de una respuesta al revelar
+  premio-duplicada.mp3  BLOQUEO: el jugador 2 intenta repetir una respuesta
+                        del jugador 1. El sistema no la deja registrar.
   premio-tic.mp3        Tic de los últimos 5 segundos
   premio-tiempo.mp3     Se acabó el tiempo
   premio-gana.mp3       Llegaron a la meta
   premio-pierde.mp3     No alcanzaron la meta
 
 NOTAS
-- También se aceptan .wav, .ogg y .m4a si eliges la carpeta a mano con el
-  botón "📁 Sonidos" del tablero. La detección automática al arrancar
-  solo busca .mp3.
+- Al revelar en el Premio Rápido cada respuesta suena dos veces: primero
+  premio-captura (aparece la respuesta) y luego acierto o error (aparece
+  el puntaje).
 - Usa efectos cortos (menos de 3 segundos), salvo victoria y premio-gana.
 - El audio se escucha en la computadora donde corre el TABLERO. Si el panel
   está en un celular, esta carpeta debe vivir en la PC de la TV.

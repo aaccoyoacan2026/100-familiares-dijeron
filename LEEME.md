@@ -14,11 +14,21 @@ Juego de encuestas por equipos. El **tablero** va en la TV; el **panel de contro
 
 > En este modo el navegador no puede leer `data/preguntas.json` por seguridad. El panel te avisa y puedes subir el archivo a mano desde **Banco de preguntas → Cargar tu propio archivo JSON** (queda guardado para las siguientes partidas). Si usas la opción B esto no hace falta.
 
-**Opción B — panel en el celular por WiFi (recomendado)**
+**Opción B — panel en el celular por WiFi (sin internet)**
 
 1. Doble clic en `INICIAR.bat` (Windows) o corre `node servidor.js` en una terminal.
 2. La TV abre `http://localhost:8080/`
 3. El celular, en la **misma red WiFi**, abre la dirección `http://TU-IP:8080/panel.html` que aparece impresa en la terminal.
+
+**Opción C — todo desde la página publicada (recomendado)**
+
+Abres la misma liga de internet en los dos dispositivos, cada quien con su red, sin encender nada en la computadora. Requiere configurar una vez la base gratuita de Firebase: las instrucciones están dentro de **`js/config-nube.js`**.
+
+1. La tablet/TV abre `https://TU-USUARIO.github.io/TU-REPO/`
+2. El celular abre `https://TU-USUARIO.github.io/TU-REPO/panel.html`
+3. Los dos deben estar en la **misma sala**. Usa **Crear sala nueva** en el panel y copia el enlace del tablero desde ahí.
+
+> **Cómo saber si quedó:** mira la etiqueta de arriba a la derecha. Debe decir *conectado por internet* (opción C) o *conectado por red local* (opción B). Si dice *modo local*, el panel y el tablero **no** se están viendo entre dispositivos.
 
 ## Reglas implementadas
 
@@ -40,10 +50,14 @@ Además: rondas de valor **×1, ×2 (doble) o ×3 (triple)**, y gana el primer e
 
 Al llegar a la meta, **la TV cambia sola** a la pantalla del Premio Rápido y el panel se adapta al nuevo juego. Juegan dos integrantes del equipo ganador con las mismas 5 preguntas al azar:
 
-1. **Jugador 1** contesta las 5 preguntas en **20 segundos**. El operador toca la respuesta que dio, o "No está en el tablero"; el panel avanza solo a la siguiente. **Nada se muestra todavía**: ni en la TV ni en el panel. Solo aparece una palomita en la casilla y un punto • en el paso, para saber que quedó registrada.
-2. Al terminar las 5, se revelan sus respuestas una por una y el total va subiendo.
-3. **Jugador 2** entra y la columna del jugador 1 **se vuelve a tapar** para que no la vea. Contesta las mismas 5 en **25 segundos**, también a ciegas. Si repite una respuesta del jugador 1, vale **0** y en la TV aparece tachada.
-4. Se revelan sus respuestas y hasta el resultado final reaparecen las dos columnas completas: si entre los dos suman **200 puntos** (configurable), ganan el premio.
+1. **Jugador 1** contesta las 5 preguntas en **25 segundos**. El operador toca la respuesta que dio, o "No está en el tablero"; el panel avanza solo a la siguiente. **Nada se muestra todavía**: ni en la TV ni en el panel. Solo aparece una palomita en la casilla y un punto • en el paso, para saber que quedó registrada.
+2. Al terminar las 5, se revelan **en dos tiempos**. Cada toque de *Revelar* hace una cosa a la vez:
+   - primer toque → aparece **la respuesta que dio**;
+   - segundo toque → aparece **el puntaje**, y hasta entonces sube el total.
+
+   El botón del panel te va diciendo qué toca: *Revelar respuesta 3*, luego *Revelar puntaje 3*.
+3. **Jugador 2** entra y la columna del jugador 1 **se vuelve a tapar** para que no la vea. Contesta las mismas 5 en **25 segundos**, también a ciegas. Si intenta repetir una respuesta del jugador 1, **el sistema la bloquea**: suena el aviso (`premio-duplicada`), la casilla sale tachada con *(ya la dijo · bloqueada)* y no se registra ni avanza de pregunta. Pídele otra respuesta.
+4. Al empezar la revelación del jugador 2, **primero reaparece completa la columna del jugador 1** (respuestas y puntajes). Solo entonces se van descubriendo las del jugador 2, una a una y también en dos tiempos. Si entre los dos suman **200 puntos** (configurable), ganan el premio.
 
 Si necesitas corregir algo durante la captura, el botón **👁** del panel descubre lo registrado y vuelve a ocultarlo. Se apaga solo al cambiar de jugador. El reloj se puede pausar, reanudar y reiniciar desde el panel.
 

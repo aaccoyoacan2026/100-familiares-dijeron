@@ -60,6 +60,17 @@ h1 small { font-size: 11px; color: var(--tenue); font-weight: 500; }
 .mult button.lista { border-color: var(--verde); color: #b7f0d0; }
 .resp.repetida { border-color: #7a2626; background: #2a1414; }
 .resp.repetida em { font-style: normal; font-size: 11px; color: #ff9a9a; }
+/* Respuesta que el jugador 2 no puede usar porque ya la dijo el jugador 1. */
+.resp.bloqueada { opacity: .6; text-decoration: line-through; }
+.resp.bloqueada em { text-decoration: none; }
+/* Revelación a medias: ya se ve la respuesta, falta destapar el puntaje. */
+.resp.media { border-color: var(--oro); background: #2a2410; }
+.resp.media .p { color: var(--oro); letter-spacing: 2px; }
+
+.aviso-nube {
+  border: 1px solid #7a5a1a; background: #2a2010; color: #ffd98a;
+  border-radius: 8px; padding: 10px; line-height: 1.45;
+}
 .lista-sonidos { margin: 6px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 4px; }
 .lista-sonidos li { list-style: none; font-size: 11px; }
 .lista-sonidos code { background: #0f1830; padding: 2px 5px; border-radius: 4px; color: var(--oro); }
