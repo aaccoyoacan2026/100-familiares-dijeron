@@ -125,9 +125,16 @@
     }
 
     /* ---------- Nube (Firebase Realtime Database por REST) ----------
-       En la base se guarda  salas/<sala> = { v: <marca de tiempo>, de: <emisor>, estado: {...} }
+       En la base se guarda  salas/<sala> = { v: <marca de tiempo>, de: <emisor>, estado: "<json>" }
        Se sondea solo  salas/<sala>/v  (un numero, unos cuantos bytes) y el estado completo
-       se baja unicamente cuando esa marca cambia. */
+       se baja unicamente cuando esa marca cambia.
+
+       OJO: el estado viaja como CADENA, no como objeto. Firebase trata null como
+       "borrar esta clave", asi que un objeto con nulos pierde campos al guardarse
+       (el Premio Rapido arranca con respuestas: [[null x5],[null x5]] y desaparecia
+       entero). Ademas convierte los arreglos con huecos en objetos con claves
+       numericas. Serializando a texto, lo que se guarda es identico a lo que se
+       manda y no hay sorpresas. */
     var RAIZ = baseNube();
     var URL_TODO = RAIZ ? RAIZ + '/salas/' + encodeURIComponent(SALA) + '.json' : '';
     var URL_V = RAIZ ? RAIZ + '/salas/' + encodeURIComponent(SALA) + '/v.json' : '';
@@ -142,7 +149,7 @@
       fetch(URL_TODO + '?print=silent', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ v: vMia, de: YO, estado: estado })
+        body: JSON.stringify({ v: vMia, de: YO, estado: JSON.stringify(estado) })
       }).then(function (r) {
         if (!r.ok) throw new Error(r.status);
         if (!nubeViva) { nubeViva = true; recalcularModo(); }
@@ -166,7 +173,9 @@
               if (!paq || typeof paq.v !== 'number' || paq.v <= vVisto) return;
               vVisto = paq.v;
               if (paq.de === YO) return;          // es nuestro propio eco
-              recibir(paq.estado);
+              /* Lo normal es que venga como cadena; se acepta objeto por si quedo
+                 algo guardado con el formato anterior. */
+              recibir(typeof paq.estado === 'string' ? JSON.parse(paq.estado) : paq.estado);
             });
         })
         .catch(function () {
