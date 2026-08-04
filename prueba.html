@@ -196,6 +196,54 @@
   ok('reiniciar la partida borra el premio', Motor.reiniciar(fin).premio === null);
 
   /* ---------------------------------------------------------- */
+  grupo('Pregunta tapada y ciclo del banco');
+  var tapada = Motor.nuevaRonda(Motor.estadoInicial({}), P, 1, ROJO);
+  ok('la pregunta nace tapada', tapada.preguntaVisible === false);
+  ok('un acierto la destapa', Motor.acertar(tapada, 0).preguntaVisible === true);
+  ok('un error también la destapa', Motor.fallar(tapada).preguntaVisible === true);
+  ok('“revelar todas” la destapa', Motor.revelarTodo(tapada).preguntaVisible === true);
+
+  var mini = [1, 2, 3, 4].map(function (i) {
+    return { id: 700 + i, cat: 'Test', texto: 'mini ' + i, respuestas: P.respuestas };
+  });
+  var ciclo = Motor.estadoInicial({ meta: 999999 }), vistas = [];
+  for (var v = 0; v < 8; v++) { ciclo = Motor.rondaAleatoria(ciclo, mini, 1, ROJO); vistas.push(ciclo.pregunta.id); }
+  var unicas = function (a) { var s = {}; a.forEach(function (x) { s[x] = 1; }); return Object.keys(s).length; };
+  ok('la vuelta 1 usa las 4 sin repetir', unicas(vistas.slice(0, 4)) === 4);
+  ok('la vuelta 2 vuelve a usar las 4 sin repetir', unicas(vistas.slice(4, 8)) === 4);
+  var pegadas = false;
+  for (var q = 1; q < vistas.length; q++) if (vistas[q] === vistas[q - 1]) pegadas = true;
+  ok('nunca sale la misma dos veces seguidas', !pegadas);
+
+  /* ---------------------------------------------------------- */
+  grupo('Premio Rápido: cero en rojo y cierre automático');
+  var g2 = Motor.estadoInicial({ meta: 100 });
+  g2.fase = 'fin'; g2.ganador = ROJO;
+  var pf = Motor.iniciarPremio(g2, cinco, ['Ana', 'Beto'], 200);
+  ok('las 5 del premio quedan marcadas como usadas',
+     pf.premio.preguntas.every(function (p) { return pf.usadas.indexOf(p.id) !== -1; }));
+
+  pf = Motor.premioComenzar(pf);
+  pf = Motor.premioResponder(pf, -1);                    // no estaba en el tablero
+  ok('“no está en el tablero” se marca como fuera y vale 0',
+     pf.premio.respuestas[0][0].fuera === true && pf.premio.respuestas[0][0].p === 0);
+  pf = Motor.premioTexto(pf, 0, 'Lo que dijo');
+  ok('se puede escribir a mano lo que dijo', pf.premio.respuestas[0][0].t === 'Lo que dijo');
+
+  pf = Motor.premioCerrarCaptura(pf);
+  for (var z = 0; z < 12; z++) pf = Motor.premioRevelar(pf, null);
+  ok('el jugador 1 no cierra solo el premio', pf.premio.etapa === 'revela');
+  pf = Motor.premioSiguienteJugador(pf);
+  pf = Motor.premioComenzar(pf);
+  pf = Motor.premioResponder(pf, 0);
+  pf = Motor.premioCerrarCaptura(pf);
+  for (var y = 0; y < 12; y++) pf = Motor.premioRevelar(pf, null);
+  ok('al terminar el jugador 2 pasa SOLO al resultado', pf.premio.etapa === 'fin');
+  ok('con veredicto', pf.premio.resultado === 'gana' || pf.premio.resultado === 'pierde');
+  ok('las que no contestó cuentan como 0',
+     pf.premio.respuestas[1][4] === null && Motor.premioTotal(pf) === pf.premio.respuestas[1][0].p);
+
+  /* ---------------------------------------------------------- */
   function revisarBanco(url, titulo, cuantas, minResp, maxResp) {
     return fetch(url).then(function (r) { return r.json(); }).then(function (j) {
       var lista = j.preguntas;
