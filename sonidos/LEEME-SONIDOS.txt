@@ -25,7 +25,10 @@ JUEGO PRINCIPAL
 
 PREMIO RÁPIDO
   premio-inicio.mp3     Entra la pantalla del Premio Rápido
-  premio-arranque.mp3   Empieza el reloj del jugador (25 s para cada uno)
+  premio-arranque.mp3   Empieza el reloj del jugador (25 s para cada uno).
+                        Puede ser un simple golpe de inicio O la música de los
+                        25 segundos completos: la pista sigue al reloj, se pausa
+                        cuando pausas y se corta al terminar la captura.
   premio-captura.mp3    Se registra una respuesta, y también cuando se
                         destapa el TEXTO de una respuesta al revelar
   premio-duplicada.mp3  BLOQUEO: el jugador 2 intenta repetir una respuesta
