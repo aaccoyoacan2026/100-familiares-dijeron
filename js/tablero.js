@@ -215,11 +215,26 @@
     if (ev.tipo === 'victoria' || ev.tipo === 'premio-gana') lanzarConfeti();
   }
 
-  /* Tic-tac de los últimos segundos del Premio Rápido. */
+  /* Tic-tac de los últimos segundos del Premio Rápido y control de la música
+     de la cuenta. Si "premio-arranque" es una pista larga (los 25 segundos
+     completos), tiene que seguir al reloj: se pausa cuando el operador pausa,
+     y se corta al terminar la captura. Si no, seguiría sonando sola. */
   var ultimoTic = null;
   function tictac(e) {
     var pr = e.premio;
-    if (!pr || !pr.activo || !pr.reloj.corriendo) { ultimoTic = null; return; }
+
+    if (!pr || !pr.activo || pr.etapa !== 'captura') {
+      ultimoTic = null;
+      Sonidos.detener('premio-arranque');
+      return;
+    }
+    if (!pr.reloj.corriendo) {
+      ultimoTic = null;
+      Sonidos.pausar('premio-arranque');
+      return;
+    }
+    Sonidos.reanudar('premio-arranque');
+
     var s = pr.reloj.restante;
     if (s > 0 && s <= 5 && s !== ultimoTic) Sonidos.reproducir('premio-tic');
     ultimoTic = s;

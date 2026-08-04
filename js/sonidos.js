@@ -19,6 +19,7 @@
   var ctx = null, activo = true, usarMp3 = true;
   var pistas = {};        // clave -> url del archivo detectado
   var precargadas = {};   // clave -> <audio> ya cargado, para que suene sin retraso
+  var sonando = {};       // clave -> <audio> que se esta reproduciendo ahora mismo
 
   /* ---------------- WebAudio (respaldo sintetizado) ---------------- */
   function ac() {
@@ -205,10 +206,32 @@
         else a = new Audio(pistas[nombre]);
         a.volume = 1;
         a.play().catch(function () { caerASintetizado(nombre); });
+        sonando[nombre] = a;
         return;
       } catch (e) { /* sigue al respaldo */ }
     }
     caerASintetizado(nombre);
+  }
+
+  /* Control de las pistas largas, como la musica de los 25 segundos del Premio
+     Rapido: debe seguir al reloj en vez de sonar sola hasta el final. */
+  function pausar(nombre) {
+    var a = sonando[nombre];
+    if (a && !a.paused) try { a.pause(); } catch (e) {}
+  }
+
+  function reanudar(nombre) {
+    var a = sonando[nombre];
+    if (a && a.paused && !a.ended) {
+      try { a.play().catch(function () {}); } catch (e) {}
+    }
+  }
+
+  function detener(nombre) {
+    var a = sonando[nombre];
+    if (!a) return;
+    try { a.pause(); a.currentTime = 0; } catch (e) {}
+    delete sonando[nombre];
   }
 
   function caerASintetizado(nombre) {
@@ -220,6 +243,9 @@
     CLAVES: CLAVES,
     CARPETA: CARPETA,
     reproducir: reproducir,
+    pausar: pausar,
+    reanudar: reanudar,
+    detener: detener,
     autodetectar: autodetectar,
     usarCarpeta: usarCarpeta,
     detectados: function () { return Object.keys(pistas).sort(); },
