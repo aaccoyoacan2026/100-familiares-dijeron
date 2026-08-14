@@ -46,7 +46,13 @@
 
     <!-- Preparación -->
     <div id="prPrep">
-      <button class="grande verde" id="prComenzar" style="width:100%">▶ Comenzar los 25 segundos</button>
+      <label>Segundos para este jugador</label>
+      <div class="fila-reloj">
+        <button class="fantasma" id="prMenosSeg">−5</button>
+        <input type="number" id="prSegundos" min="5" max="300" step="1" value="25">
+        <button class="fantasma" id="prMasSeg">+5</button>
+      </div>
+      <button class="grande verde" id="prComenzar" style="width:100%;margin-top:10px">▶ Comenzar los 25 segundos</button>
     </div>
 
     <!-- Captura -->
