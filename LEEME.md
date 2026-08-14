@@ -50,6 +50,8 @@ Además: rondas de valor **×1, ×2 (doble) o ×3 (triple)**, y gana el primer e
 
 Al llegar a la meta, **la TV cambia sola** a la pantalla del Premio Rápido y el panel se adapta al nuevo juego. Juegan dos integrantes del equipo ganador con las mismas 5 preguntas al azar:
 
+El reloj viene en **25 segundos** para cada uno, pero se puede cambiar antes de arrancar: en la pantalla de preparación del panel hay un campo con **−5** y **+5** (de 5 a 300 segundos). Cada jugador lleva su propio tiempo, así que puedes darle más al segundo si hace falta.
+
 1. **Jugador 1** contesta las 5 preguntas en **25 segundos**. El operador toca la respuesta que dio, o "No está en el tablero"; el panel avanza solo a la siguiente. **Nada se muestra todavía**: ni en la TV ni en el panel. Solo aparece una palomita en la casilla y un punto • en el paso, para saber que quedó registrada.
 2. Al terminar las 5, se revelan **en dos tiempos**. Cada toque de *Revelar* hace una cosa a la vez:
    - primer toque → aparece **la respuesta que dio**;
@@ -57,7 +59,10 @@ Al llegar a la meta, **la TV cambia sola** a la pantalla del Premio Rápido y el
 
    El botón del panel te va diciendo qué toca: *Revelar respuesta 3*, luego *Revelar puntaje 3*.
 3. **Jugador 2** entra y la columna del jugador 1 **se vuelve a tapar** para que no la vea. Contesta las mismas 5 en **25 segundos**, también a ciegas. Si intenta repetir una respuesta del jugador 1, **el sistema la bloquea**: suena el aviso (`premio-duplicada`), la casilla sale tachada con *(ya la dijo · bloqueada)* y no se registra ni avanza de pregunta. Pídele otra respuesta.
-4. Al empezar la revelación del jugador 2, **primero reaparece completa la columna del jugador 1** (respuestas y puntajes). Solo entonces se van descubriendo las del jugador 2, una a una y también en dos tiempos. Si entre los dos suman **200 puntos** (configurable), ganan el premio.
+4. Al empezar la revelación del jugador 2, **primero reaparece completa la columna del jugador 1** (respuestas y puntajes). Solo entonces se van descubriendo las del jugador 2, una a una y también en dos tiempos.
+5. Al destapar el **último puntaje**, ahí se queda todo a la vista. El salto al mensaje de **GANARON EL PREMIO** o **NO ALCANZÓ** lo decides tú con el botón **🏆 Mostrar el resultado** del panel, para dar el suspenso. Si entre los dos suman **200 puntos** (configurable), ganan.
+
+> **Los sonidos de la revelación:** una respuesta buena suena con `acierto` al aparecer y remata con `premio-puntos` al destapar su puntaje. Una que vale 0 —o que no estaba en el tablero— aparece **en silencio**, y el `error` suena hasta que se descubre el cero, que es cuando el público lo entiende.
 
 Si necesitas corregir algo durante la captura, el botón **👁** del panel descubre lo registrado y vuelve a ocultarlo. Se apaga solo al cambiar de jugador. El reloj se puede pausar, reanudar y reiniciar desde el panel.
 
