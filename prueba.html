@@ -238,10 +238,29 @@
   pf = Motor.premioResponder(pf, 0);
   pf = Motor.premioCerrarCaptura(pf);
   for (var y = 0; y < 12; y++) pf = Motor.premioRevelar(pf, null);
-  ok('al terminar el jugador 2 pasa SOLO al resultado', pf.premio.etapa === 'fin');
+  ok('al revelar el último puntaje NO salta solo al resultado', pf.premio.etapa === 'revela');
+  ok('el último puntaje queda a la vista', Motor.premioNivel(pf.premio.revelado[1][4]) === 2);
+  ok('ya no queda nada por revelar', Motor.premioPendientes(pf.premio, 1) === false);
+  pf = Motor.premioFinal(pf);
+  ok('el operador decide cuándo mostrar el resultado', pf.premio.etapa === 'fin');
   ok('con veredicto', pf.premio.resultado === 'gana' || pf.premio.resultado === 'pierde');
   ok('las que no contestó cuentan como 0',
      pf.premio.respuestas[1][4] === null && Motor.premioTotal(pf) === pf.premio.respuestas[1][0].p);
+
+  /* ---------------------------------------------------------- */
+  grupo('Premio Rápido: reloj editable');
+  var rt = Motor.iniciarPremio(Motor.estadoInicial({}), cinco, ['A', 'B'], 200);
+  ok('arranca en 25 s', rt.premio.reloj.limite === 25 && rt.premio.tiempos[0] === 25);
+  rt = Motor.premioTiempo(rt, 40);
+  ok('el panel puede subirlo a 40', rt.premio.tiempos[0] === 40 && rt.premio.reloj.restante === 40);
+  ok('al comenzar usa los 40', Motor.premioComenzar(rt).premio.reloj.limite === 40);
+  ok('no admite menos de 5 s', Motor.premioTiempo(rt, 1).premio.tiempos[0] === 5);
+  ok('ni más de 300 s', Motor.premioTiempo(rt, 9999).premio.tiempos[0] === 300);
+  var rt2 = Motor.premioSiguienteJugador(Motor.premioCerrarCaptura(Motor.premioComenzar(rt)));
+  ok('el jugador 2 conserva su propio tiempo', rt2.premio.reloj.limite === 25);
+  rt2 = Motor.premioTiempo(rt2, 30);
+  ok('y se le puede cambiar por separado',
+     rt2.premio.tiempos[0] === 40 && rt2.premio.tiempos[1] === 30);
 
   /* ---------------------------------------------------------- */
   function revisarBanco(url, titulo, cuantas, minResp, maxResp) {
