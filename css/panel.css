@@ -67,6 +67,14 @@ h1 small { font-size: 11px; color: var(--tenue); font-weight: 500; }
 .resp.media { border-color: var(--oro); background: #2a2410; }
 .resp.media .p { color: var(--oro); letter-spacing: 2px; }
 
+/* Ajuste del reloj del Premio Rápido. */
+.fila-reloj { display: grid; grid-template-columns: 64px 1fr 64px; gap: 8px; align-items: center; }
+.fila-reloj input {
+  text-align: center; font-size: 22px; font-weight: 800;
+  padding: 8px; border-radius: 8px; border: 1px solid var(--oro);
+  background: #2a2410; color: var(--oro);
+}
+
 /* Revelación de una respuesta que no estaba en el tablero: se escribe a mano. */
 .resp-libre { display: grid; gap: 6px; }
 .resp-libre input {
