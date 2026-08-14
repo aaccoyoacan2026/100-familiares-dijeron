@@ -295,7 +295,9 @@
     $('prRevela').hidden = pr.etapa !== 'revela';
     $('prFin').hidden = pr.etapa !== 'fin';
 
-    $('prComenzar').textContent = '▶ Comenzar los ' + pr.reloj.limite + ' segundos';
+    var segs = (pr.tiempos && pr.tiempos[pr.jugador]) || pr.reloj.limite;
+    if (document.activeElement !== $('prSegundos')) $('prSegundos').value = segs;
+    $('prComenzar').textContent = '▶ Comenzar los ' + segs + ' segundos';
 
     var textos = {
       prep: pr.jugador === 0
@@ -417,6 +419,13 @@
       : (Motor.premioNivel(pr.revelado[pr.jugador][siguiente]) === 0
         ? 'Revelar respuesta ' + (siguiente + 1)
         : 'Revelar puntaje ' + (siguiente + 1));
+
+    /* Con todo el jugador 2 descubierto, el último puntaje se queda a la vista y
+       el paso al mensaje de resultado lo decide el operador. */
+    var listoParaResultado = pr.jugador === 1 && siguiente === -1;
+    $('prVerResultado').classList.toggle('grande', listoParaResultado);
+    $('prVerResultado').textContent = listoParaResultado
+      ? '🏆 Mostrar el resultado' : 'Ver resultado';
     $('prSiguienteJugador').hidden = pr.jugador === 1;
     $('prVerResultado').hidden = pr.jugador === 0;
   }
@@ -433,6 +442,18 @@
   $('prNombre2').addEventListener('change', function () { publicar(nombresPremio()); });
 
   $('prEspiar').addEventListener('click', function () { espiando = !espiando; pintar(); });
+
+  /* Reloj editable: el operador decide cuántos segundos tiene cada jugador. */
+  function fijarSegundos(v) {
+    publicar(Motor.premioTiempo(estado, v));
+  }
+  $('prSegundos').addEventListener('change', function () { fijarSegundos(this.value); });
+  $('prMenosSeg').addEventListener('click', function () {
+    fijarSegundos((Number($('prSegundos').value) || 25) - 5);
+  });
+  $('prMasSeg').addEventListener('click', function () {
+    fijarSegundos((Number($('prSegundos').value) || 25) + 5);
+  });
 
   $('prComenzar').addEventListener('click', function () {
     espiando = false;
