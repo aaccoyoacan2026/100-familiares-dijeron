@@ -253,6 +253,7 @@
       respuestas: [vacio5(null), vacio5(null)],
       revelado: [vacio5(0), vacio5(0)],
       actual: 0,
+      tiempos: TIEMPOS.slice(),   // segundos de cada jugador, editables desde el panel
       reloj: { restante: TIEMPOS[0], limite: TIEMPOS[0], corriendo: false },
       resultado: null
     };
@@ -320,12 +321,34 @@
     return e;
   }
 
+  /* Segundos asignados al jugador en turno. Tolera partidas guardadas sin el campo. */
+  function segundosDe(pr, j) {
+    var t = pr.tiempos && pr.tiempos[j];
+    return t > 0 ? t : TIEMPOS[j];
+  }
+
+  /* El operador cambia el reloj del jugador en turno desde el panel. */
+  function premioTiempo(est, segundos) {
+    var e = clonar(est), pr = e.premio;
+    if (!pr) return est;
+    var s = Math.max(5, Math.min(300, Math.round(Number(segundos) || 0)));
+    if (!pr.tiempos) pr.tiempos = TIEMPOS.slice();
+    pr.tiempos[pr.jugador] = s;
+    /* Si todavía no arranca, el reloj en pantalla se actualiza al momento. */
+    if (!pr.reloj.corriendo && pr.etapa !== 'captura') {
+      pr.reloj.limite = s;
+      pr.reloj.restante = s;
+    }
+    return e;
+  }
+
   function premioComenzar(est) {
     var e = clonar(est), pr = e.premio;
     if (!pr) return est;
+    var s = segundosDe(pr, pr.jugador);
     pr.etapa = 'captura';
     pr.actual = 0;
-    pr.reloj = { restante: TIEMPOS[pr.jugador], limite: TIEMPOS[pr.jugador], corriendo: true };
+    pr.reloj = { restante: s, limite: s, corriendo: true };
     marcar(e, 'premio-arranque');
     return e;
   }
@@ -374,15 +397,12 @@
 
     var r = pr.respuestas[j][i];
     var vale = !!r && !r.dup && r.p > 0;
-    if (n === 0) marcar(e, vale ? 'acierto' : 'error', i);   // aparece LA RESPUESTA
-    else marcar(e, 'premio-puntos', i);                      // aparece EL PUNTAJE
 
-    /* Terminada la revelación del jugador 2 se pasa solo al resultado. */
-    if (j === 1 && !pendientes(pr, 1)) {
-      pr.etapa = 'fin';
-      pr.resultado = premioTotal(e) >= pr.meta ? 'gana' : 'pierde';
-      marcar(e, pr.resultado === 'gana' ? 'premio-gana' : 'premio-pierde');
-    }
+    /* Las buenas se celebran al aparecer la respuesta y rematan con el puntaje.
+       Las que valen 0 no suenan al aparecer: el "error" se guarda para el momento
+       en que se descubre el cero, que es cuando el público lo entiende. */
+    if (n === 0) marcar(e, vale ? 'acierto' : null, i);
+    else marcar(e, vale ? 'premio-puntos' : 'error', i);
     return e;
   }
 
@@ -408,7 +428,8 @@
     pr.jugador = 1;
     pr.etapa = 'prep';
     pr.actual = 0;
-    pr.reloj = { restante: TIEMPOS[1], limite: TIEMPOS[1], corriendo: false };
+    var s = segundosDe(pr, 1);
+    pr.reloj = { restante: s, limite: s, corriendo: false };
     marcar(e, 'nueva-ronda');
     return e;
   }
@@ -502,6 +523,8 @@
     TIEMPOS_PREMIO: TIEMPOS,
     premioNivel: nivel,
     premioTexto: premioTexto,
+    premioTiempo: premioTiempo,
+    premioPendientes: pendientes,
     iniciarPremio: iniciarPremio,
     premioTotal: premioTotal,
     premioResponder: premioResponder,
